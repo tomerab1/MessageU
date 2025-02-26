@@ -3,7 +3,11 @@ from dataclasses import dataclass
 from enum import Enum
 from abc import ABC, abstractmethod
 
-from exceptions.exceptions import InvalidCodeError, InvalidPayloadError
+from exceptions.exceptions import (
+    InvalidCodeError,
+    InvalidPayloadError,
+    InvalidMessageTypeError,
+)
 
 
 class Payload(ABC):
@@ -36,8 +40,18 @@ class RegistrationPayload(Payload):
 class ListUsersPayload(Payload):
     @classmethod
     def from_bytes(cls, data, data_len=0):
-        if len(data) or data_len != 0:
+        if data or data_len != 0:
             raise InvalidPayloadError()
+        return cls()
+
+
+@dataclass
+class PollMessagesPayload(Payload):
+    @classmethod
+    def from_bytes(cls, data, data_len=0):
+        if data or data_len != 0:
+            raise InvalidPayloadError()
+        return cls()
 
 
 @dataclass
@@ -56,11 +70,65 @@ class GetPublicKeyPayload(Payload):
             raise InvalidPayloadError()
 
 
+class MessageTypes(Enum):
+    REQ_SYM_KEY = 1
+    SEND_SYM_KEY = 2
+    SEND_TXT = 3
+    SEND_FILE = 4
+
+    @staticmethod
+    def code_to_enum(code):
+        if code == 1:
+            return MessageTypes.REQ_SYM_KEY
+        elif code == 2:
+            return MessageTypes.SEND_SYM_KEY
+        elif code == 3:
+            return MessageTypes.SEND_TXT
+        elif code == 4:
+            return MessageTypes.SEND_FILE
+
+        raise InvalidMessageTypeError(f"Error: '{code}' is not a valid message type")
+
+
+@dataclass
+class SendMessagePayload(Payload):
+    _PAYLOAD_FMT = "<16sBI"
+    _PAYLOAD_SZ = struct.calcsize(_PAYLOAD_FMT)
+
+    client_id: str
+    msg_type: MessageTypes
+    content_sz: int
+    content: bytes
+
+    @classmethod
+    def from_bytes(cls, data, data_len=0):
+        try:
+            data_without_content = struct.unpack(
+                SendMessagePayload._PAYLOAD_FMT, data[: SendMessagePayload._PAYLOAD_SZ]
+            )
+
+            client_id, msg_type, content_sz = data_without_content
+            raw_content = data[
+                SendMessagePayload._PAYLOAD_SZ : SendMessagePayload._PAYLOAD_SZ
+                + content_sz
+            ]
+            return cls(
+                client_id, MessageTypes.code_to_enum(msg_type), content_sz, raw_content
+            )
+
+        except Exception:
+            raise InvalidPayloadError()
+
+
 class RequestCodes(Enum):
     REGISTER = 600
     LIST_USERS = 601
     GET_PUB_KEY = 602
+    SEND_MSG = 603
+    POLL_MSGS = 604
+    INVALID = 0xFFFF
 
+    @staticmethod
     def code_to_enum(code):
         if code == 600:
             return RequestCodes.REGISTER
@@ -68,6 +136,11 @@ class RequestCodes(Enum):
             return RequestCodes.LIST_USERS
         elif code == 602:
             return RequestCodes.GET_PUB_KEY
+        elif code == 603:
+            return RequestCodes.SEND_MSG
+        elif code == 604:
+            return RequestCodes.POLL_MSGS
+        return code
 
 
 class Request:
@@ -89,7 +162,7 @@ class Request:
         code = RequestCodes.code_to_enum(code)
         payload_cls = Request._PAYLOAD_CLASSES.get(code)
         if payload_cls is None:
-            raise InvalidCodeError(f"Error: {code} is invalid")
+            raise InvalidCodeError(f"Error: request '{code}' is invalid")
 
         raw_payload = packet[Request._HEADER_SZ : Request._HEADER_SZ + payload_size]
         self._payload = payload_cls.from_bytes(raw_payload, payload_size)
@@ -104,3 +177,5 @@ class Request:
 Request._PAYLOAD_CLASSES[RequestCodes.REGISTER] = RegistrationPayload
 Request._PAYLOAD_CLASSES[RequestCodes.LIST_USERS] = ListUsersPayload
 Request._PAYLOAD_CLASSES[RequestCodes.GET_PUB_KEY] = GetPublicKeyPayload
+Request._PAYLOAD_CLASSES[RequestCodes.SEND_MSG] = SendMessagePayload
+Request._PAYLOAD_CLASSES[RequestCodes.POLL_MSGS] = PollMessagesPayload

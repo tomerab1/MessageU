@@ -16,3 +16,8 @@ class InvalidCodeError(Exception):
 class InvalidPayloadError(Exception):
     def __init__(self):
         super().__init__()
+
+
+class InvalidMessageTypeError(Exception):
+    def __init__(self, msg):
+        super().__init__(msg)
