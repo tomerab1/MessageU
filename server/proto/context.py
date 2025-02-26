@@ -11,4 +11,4 @@ class Context:
         return self._request
 
     def write(self, response: Response):
-        self._socket.send(response)
+        self._socket.send(response.to_bytes())
