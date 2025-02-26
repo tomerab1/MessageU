@@ -2,10 +2,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from config.config import Config
 from proto.request import MessageTypes
+from exceptions.exceptions import InvalidPayloadResponseError, InvalidUUID
 from enum import Enum
 import struct
-
-from exceptions.exceptions import InvalidPayloadResponseError, InvalidUUID
 
 
 class ResPayload(ABC):
@@ -126,6 +125,10 @@ class PollMessagePayload(ResPayload):
         ) + self._content.encode("utf-8").ljust(self._msg_sz, b"\x00")
 
 
+class ErrorResponse(ResPayload):
+    pass
+
+
 class ResponseCodes(Enum):
     REG_OK = 2100
     LIST_USRS = 2101
@@ -175,3 +178,32 @@ class Response:
 
     def to_bytes(self):
         return self._header.to_bytes() + self._payload.to_bytes()
+
+
+class ResponseFactory:
+    _builders = {
+        ResponseCodes.REG_OK: lambda uuid: RegistrationOkPayload(uuid),
+        ResponseCodes.LIST_USRS: lambda users_list: ListUsersPayload(users_list),
+        ResponseCodes.PUB_KEY: lambda client_id, public_key: PublicKeyPayload(
+            client_id, public_key
+        ),
+        ResponseCodes.MSG_SENT: lambda dst_client_id, msg_id: MessageSentPayload(
+            dst_client_id, msg_id
+        ),
+        ResponseCodes.POLL_MSGS: lambda client_id,
+        msg_id,
+        msg_type,
+        msg_sz,
+        content: PollMessagePayload(client_id, msg_id, msg_type, msg_sz, content),
+        ResponseCodes.ERROR: lambda: ErrorResponse(),
+    }
+
+    @staticmethod
+    def create_response(code: ResponseCodes, *args, **kwargs) -> Response:
+        builder = ResponseFactory._builders.get(code)
+        if builder is None:
+            raise InvalidPayloadResponseError(
+                f"No builder found for response code {code}"
+            )
+        payload = builder(*args, **kwargs)
+        return Response(code, payload)

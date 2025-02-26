@@ -1,13 +1,9 @@
 from config.config import Config
 from proto.request import Request, MessageTypes
 from proto.response import (
-    RegistrationOkPayload,
-    ListUsersPayload,
-    PublicKeyPayload,
-    MessageSentPayload,
-    PollMessagePayload,
     ResponseCodes,
     Response,
+    ResponseFactory,
 )
 import struct
 import uuid
@@ -93,7 +89,8 @@ def test_code_604():
 
 def test_response_2100():
     new_uuid = uuid.uuid4()
-    res = Response(ResponseCodes.REG_OK, RegistrationOkPayload(new_uuid.bytes))
+    res = ResponseFactory.create_response(ResponseCodes.REG_OK, new_uuid.bytes)
+
     print(res)
     print(res.to_bytes())
     print()
@@ -110,7 +107,8 @@ def test_response_2101():
     users = []
     for i in range(5):
         users.append(User(new_uuid.bytes, f"user-{i}"))
-    res = Response(ResponseCodes.LIST_USRS, ListUsersPayload(users))
+    res = ResponseFactory.create_response(ResponseCodes.LIST_USRS, users)
+
     print(res)
     print(res.to_bytes())
     print()
@@ -120,7 +118,8 @@ def test_response_2102():
     new_uuid = uuid.uuid4()
     client_id = new_uuid.bytes
     public_key = "public_key_value"
-    res = Response(ResponseCodes.PUB_KEY, PublicKeyPayload(client_id, public_key))
+    res = ResponseFactory.create_response(ResponseCodes.PUB_KEY, client_id, public_key)
+
     print(res)
     print(res.to_bytes())
     print()
@@ -130,7 +129,9 @@ def test_response_2103():
     new_uuid = uuid.uuid4()
     dst_client_id = new_uuid.bytes
     msg_id = 1234
-    res = Response(ResponseCodes.MSG_SENT, MessageSentPayload(dst_client_id, msg_id))
+
+    res = ResponseFactory.create_response(ResponseCodes.MSG_SENT, dst_client_id, msg_id)
+
     print(res)
     print(res.to_bytes())
     print()
@@ -143,10 +144,16 @@ def test_response_2104():
     msg_type = MessageTypes.SEND_TXT
     msg_content = "Test poll message"
     msg_sz = len(msg_content)
-    res = Response(
+
+    res = ResponseFactory.create_response(
         ResponseCodes.POLL_MSGS,
-        PollMessagePayload(client_id, msg_id, msg_type, msg_sz, msg_content),
+        client_id,
+        msg_id,
+        msg_type,
+        msg_sz,
+        msg_content,
     )
+
     print(res)
     print(res.to_bytes())
     print()
@@ -164,8 +171,8 @@ def main():
         # test_response_2100()
         # test_response_2101()
         # test_response_2102()
-        test_response_2103()
-        # test_response_2104()
+        # test_response_2103()
+        test_response_2104()
     except Exception as e:
         print(e)
 
