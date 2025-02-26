@@ -75,7 +75,7 @@ class PublicKeyPayload(ResPayload):
 
     def to_bytes(self):
         return struct.pack(
-            PublicKeyPayload._FMT_SZ,
+            PublicKeyPayload._RES_FMT,
             self._client_id,
             self._public_key.encode("utf-8").ljust(160, b"\x00"),
         )
@@ -91,10 +91,12 @@ class MessageSentPayload(ResPayload):
         self._msg_id = msg_id
 
     def size(self):
-        return PublicKeyPayload._FMT_SZ
+        return MessageSentPayload._FMT_SZ
 
     def to_bytes(self):
-        return struct.pack(PublicKeyPayload._FMT_SZ, self._dst_client_id, self._msg_id)
+        return struct.pack(
+            MessageSentPayload._RES_FMT, self._dst_client_id, self._msg_id
+        )
 
 
 class PollMessagePayload(ResPayload):
@@ -110,24 +112,23 @@ class PollMessagePayload(ResPayload):
         self._content = content
 
     def size(self):
-        return PublicKeyPayload._FMT_SZ + len(
-            self._content.ljust(self._msg_sz, b"\x00")
+        return PollMessagePayload._FMT_SZ + len(
+            self._content.encode("utf-8").ljust(self._msg_sz, b"\x00")
         )
 
     def to_bytes(self):
         return struct.pack(
-            PollMessagePayload._FMT_SZ,
+            PollMessagePayload._RES_FMT,
             self._client_id,
             self._msg_id,
             self._msg_type.value,
             self._msg_sz,
-            self._content.encode("utf-8").ljust(self._msg_sz, b"\x00"),
-        )
+        ) + self._content.encode("utf-8").ljust(self._msg_sz, b"\x00")
 
 
 class ResponseCodes(Enum):
     REG_OK = 2100
-    USRS_LIST = 2101
+    LIST_USRS = 2101
     PUB_KEY = 2102
     MSG_SENT = 2103
     POLL_MSGS = 2104
@@ -138,7 +139,7 @@ class ResponseCodes(Enum):
         if code == 2100:
             return ResponseCodes.REG_OK
         elif code == 2101:
-            return ResponseCodes.USRS_LIST
+            return ResponseCodes.LIST_USRS
         elif code == 2102:
             return ResponseCodes.PUB_KEY
         elif code == 2103:
