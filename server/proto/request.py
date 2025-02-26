@@ -10,7 +10,7 @@ from exceptions.exceptions import (
 )
 
 
-class Payload(ABC):
+class ReqPayload(ABC):
     @classmethod
     @abstractmethod
     def from_bytes(cls, data, data_len=0):
@@ -18,7 +18,7 @@ class Payload(ABC):
 
 
 @dataclass
-class RegistrationPayload(Payload):
+class RegistrationPayload(ReqPayload):
     _PAYLOAD_FMT = "<255B160B"
 
     username: str
@@ -37,7 +37,7 @@ class RegistrationPayload(Payload):
 
 
 @dataclass
-class ListUsersPayload(Payload):
+class ListUsersPayload(ReqPayload):
     @classmethod
     def from_bytes(cls, data, data_len=0):
         if data or data_len != 0:
@@ -46,7 +46,7 @@ class ListUsersPayload(Payload):
 
 
 @dataclass
-class PollMessagesPayload(Payload):
+class PollMessagesPayload(ReqPayload):
     @classmethod
     def from_bytes(cls, data, data_len=0):
         if data or data_len != 0:
@@ -55,7 +55,7 @@ class PollMessagesPayload(Payload):
 
 
 @dataclass
-class GetPublicKeyPayload(Payload):
+class GetPublicKeyPayload(ReqPayload):
     _PAYLOAD_FMT = "<16s"
 
     user_id: str
@@ -91,7 +91,7 @@ class MessageTypes(Enum):
 
 
 @dataclass
-class SendMessagePayload(Payload):
+class SendMessagePayload(ReqPayload):
     _PAYLOAD_FMT = "<16sBI"
     _PAYLOAD_SZ = struct.calcsize(_PAYLOAD_FMT)
 

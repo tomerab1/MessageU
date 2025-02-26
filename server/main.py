@@ -1,7 +1,13 @@
 # mini_test.py
 from config.config import Config
-import struct
 from proto.request import Request
+from proto.response import (
+    RegistrationOkPayload,
+    ListUsersPayload,
+    ResponseCodes,
+    Response,
+)
+import struct
 
 
 def test_code_600():
@@ -96,6 +102,38 @@ def test_code_604():
     print()
 
 
+def test_response_2100():
+    import uuid
+
+    uuid = uuid.uuid4()
+
+    res = Response(ResponseCodes.REG_OK, RegistrationOkPayload(uuid.bytes))
+    print(res)
+    print(res.to_bytes())
+    print()
+
+
+def test_response_2101():
+    import uuid
+    from dataclasses import dataclass
+
+    uuid = uuid.uuid4()
+
+    @dataclass
+    class User:
+        uuid: bytes
+        username: str
+
+    users = []
+    for i in range(5):
+        users.append(User(uuid.bytes, f"user-{i}"))
+
+    res = Response(ResponseCodes.USRS_LIST_OK, ListUsersPayload(users))
+    print(res)
+    print(res.to_bytes())
+    print()
+
+
 def main():
     Config.load()
     print(f"port: {Config.PORT}")
@@ -106,6 +144,8 @@ def main():
         test_code_602()
         test_code_603()
         test_code_604()
+        test_response_2100()
+        test_response_2101()
     except Exception as e:
         print(e)
 
