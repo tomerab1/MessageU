@@ -11,7 +11,7 @@ class Repository(ABC):
         pass
 
     @abstractmethod
-    def create(self, id, obj):
+    def save(self, obj):
         pass
 
     # @abstractmethod

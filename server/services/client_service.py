@@ -7,12 +7,14 @@ import uuid
 class ClientService:
     def __init__(self, repo: Repository):
         self._client_repo = repo
-        self._uuid = uuid.uuid4()
+
+    def find_by_id(self, uuid) -> ClientEntity:
+        return self._client_repo.find_one(filter_cb=lambda record: uuid in record)
+
+    def find_all(self):
+        return self._client_repo.find_all()
 
     def create(self, payload: RegistrationPayload):
-        try:
-            user = ClientEntity(self._uuid.bytes, payload.username, payload.public_key)
-            self._client_repo.create(user.get_uuid(), user)
-            return user
-        except Exception as e:
-            raise e
+        user = ClientEntity(uuid.uuid4().bytes, payload.username, payload.public_key)
+        self._client_repo.save(user)
+        return user

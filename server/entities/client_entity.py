@@ -33,4 +33,4 @@ class ClientEntity:
         self._last_seen = last_seen
 
     def __repr__(self):
-        return f"Client({self._uuid}, {self._username})"
+        return f"Client({self._uuid}, {self._username}, {self._public_key})"

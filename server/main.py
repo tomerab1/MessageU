@@ -27,7 +27,7 @@ class MessageUServer:
     def serve(self):
         print(f"Serving on port {self._port}...")
         while True:
-            events = self._sel.select(timeout=1)
+            events = self._sel.select()
             for key, mask in events:
                 cb = key.data
                 cb(key.fileobj, mask)
@@ -60,9 +60,7 @@ class MessageUServer:
             data = conn.recv(1024)
             if data:
                 ctx = Context(conn, Request(data))
-                print(f"HERE {ctx}")
                 self._controller.multiplex(ctx)
-                # conn.send(data)
         except Exception as e:
             print(f"{e}")
             self._sel.unregister(conn)

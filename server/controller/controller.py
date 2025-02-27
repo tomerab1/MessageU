@@ -1,6 +1,6 @@
 from proto.context import Context
 from proto.response import ResponseCodes, ResponseFactory, Response
-from proto.request import RequestCodes, RegistrationPayload
+from proto.request import RequestCodes, RegistrationPayload, GetPublicKeyPayload
 from services.client_service import ClientService
 from services.message_service import MessagesService
 
@@ -18,6 +18,7 @@ class Controller:
 
     def _install_handlers(self):
         self._hanlders[RequestCodes.REGISTER.value] = self.register
+        self._hanlders[RequestCodes.LIST_USERS.value] = self.list_users
 
     def multiplex(self, ctx: Context):
         try:
@@ -27,10 +28,36 @@ class Controller:
             return res
         except Exception as e:
             print(e)
+            ctx.write(ResponseFactory.create_response(ResponseCodes.ERROR))
 
     def register(self, ctx: Context, register_payload: RegistrationPayload) -> Response:
         new_client = self._client_service.create(register_payload)
         ctx.write(
-            ResponseFactory.create_response(ResponseCodes.REG_OK, new_client.get_uuid())
+            ResponseFactory.create_response(
+                ResponseCodes.REG_OK,
+                new_client.get_uuid(),
+            )
         )
-        print(new_client)
+
+    def list_users(self, ctx: Context, _) -> Response:
+        users_list = self._client_service.find_all()
+        print(users_list)
+        ctx.write(
+            ResponseFactory.create_response(
+                ResponseCodes.LIST_USRS,
+                users_list,
+            )
+        )
+
+    def get_pub_key(
+        self, ctx: Context, get_pub_key_payload: GetPublicKeyPayload
+    ) -> Response:
+        user = self._client_service.find_by_id(get_pub_key_payload.user_id)
+        print(user)
+        ctx.write(
+            ResponseFactory.create_response(
+                ResponseCodes.PUB_KEY,
+                user.get_uuid(),
+                user.get_public_key(),
+            )
+        )

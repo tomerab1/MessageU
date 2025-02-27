@@ -52,8 +52,8 @@ class ListUsersPayload(ResPayload):
             [
                 struct.pack(
                     ListUsersPayload._RES_FMT,
-                    user.uuid,
-                    user.username.encode("utf-8").ljust(255, b"\x00"),
+                    user.get_uuid(),
+                    user.get_username().encode("utf-8").ljust(255, b"\x00"),
                 )
                 for user in self._users_list
             ]
@@ -126,7 +126,14 @@ class PollMessagePayload(ResPayload):
 
 
 class ErrorResponse(ResPayload):
-    pass
+    def __init__(self):
+        super().__init__()
+
+    def size(self):
+        return 0
+
+    def to_bytes(self):
+        return b""
 
 
 class ResponseCodes(Enum):
