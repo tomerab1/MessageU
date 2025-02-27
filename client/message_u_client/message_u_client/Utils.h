@@ -6,7 +6,7 @@
 
 namespace Utils {
 	template<typename T>
-	void serializeTrivialType(std::vector<uint8_t>& outVec, size_t& outOffset, const T& toSerialize) {
+	void serializeTrivialType(std::vector<uint8_t>& outVec, size_t& outOffset, T toSerialize) {
 		auto inNetOrder = boost::endian::native_to_big(toSerialize);
 		std::memcpy(outVec.data() + outOffset, &inNetOrder, sizeof(T));
 		outOffset += sizeof(T);
