@@ -3,17 +3,21 @@ from abc import ABC, abstractmethod
 
 class Repository(ABC):
     @abstractmethod
-    def find(self, filter_cb):
+    def find_all(self):
         pass
 
     @abstractmethod
-    def create(self, id, dto):
+    def find_one(self, filter_cb):
         pass
 
     @abstractmethod
-    def update(self, id, dto):
+    def create(self, id, obj):
         pass
 
-    @abstractmethod
-    def delete(self, id):
-        pass
+    # @abstractmethod
+    # def update(self, id, obj):
+    #     pass
+
+    # @abstractmethod
+    # def delete(self, id):
+    #     pass

@@ -1,11 +1,11 @@
 class UniqueKeyViolationException(Exception):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, msg):
+        super().__init__(msg)
 
 
 class NotFoundError(Exception):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, msg):
+        super().__init__(msg)
 
 
 class InvalidCodeError(Exception):
