@@ -27,6 +27,12 @@
     <ClCompile Include="RegisterPayload.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Response.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ResPayload.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -45,6 +51,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Response.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ResPayload.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

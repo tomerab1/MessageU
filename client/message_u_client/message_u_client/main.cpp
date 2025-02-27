@@ -17,7 +17,7 @@ int main()
 
 	Request req{ std::array<uint8_t, Config::CLIENT_ID_SZ>{"123456789111111"},
 		RequestCodes::REGISTER,
-		std::make_unique<RegisterReqPayload>("Tomer abokarat", "secret_key=123") };
+		std::make_unique<RegisterReqPayload>("Tomer", "secret_key=123") };
 
 	auto bytes = req.toBytes();
 

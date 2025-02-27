@@ -23,7 +23,7 @@ public:
 		static Header fromBytes(const bytes_t& bytes);
 	};
 
-	static Response fromBytes(const bytes_t& bytes);
+	Response(const bytes_t& bytes);
 
 	const Header& getHeader();
 	const ResPayload& getPayload();
