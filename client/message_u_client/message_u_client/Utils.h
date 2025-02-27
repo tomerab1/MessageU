@@ -11,4 +11,9 @@ namespace Utils {
 		std::memcpy(outVec.data() + outOffset, &inNetOrder, sizeof(T));
 		outOffset += sizeof(T);
 	}
+
+	template<typename T>
+	uint16_t EnumToUint16(T enumVal) {
+		return static_cast<std::underlying_type_t<T>>(enumVal);
+	}
 }

@@ -1,13 +1,13 @@
-#include "RegisterPayload.h"
+#include "RegisterReqPayload.h"
 
 #include <boost/endian/conversion.hpp>
 
-RegisterPayload::RegisterPayload(const name_t& name, const pub_key_t& pubKey)
+RegisterReqPayload::RegisterReqPayload(const name_t& name, const pub_key_t& pubKey)
     : m_name{name}, m_pubKey{pubKey}
 {
 }
 
-RegisterPayload::bytes_t RegisterPayload::toBytes()
+RegisterReqPayload::bytes_t RegisterReqPayload::toBytes()
 {
     bytes_t bytes(Config::NAME_MAX_SZ + Config::PUB_KEY_SZ, 0);
 
@@ -17,7 +17,7 @@ RegisterPayload::bytes_t RegisterPayload::toBytes()
     return bytes;
 }
 
-uint32_t RegisterPayload::getSize()
+uint32_t RegisterReqPayload::getSize()
 {
     return Config::NAME_MAX_SZ + Config::PUB_KEY_SZ;
 }

@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="message_u_client.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Request.cpp">
@@ -38,10 +38,13 @@
     <ClInclude Include="Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Payload.h">
+    <ClInclude Include="ReqPayload.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RegisterPayload.h">
+    <ClInclude Include="RegisterReqPayload.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Response.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

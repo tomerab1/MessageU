@@ -1,16 +1,16 @@
 #pragma once
-#include "Payload.h"
+#include "ReqPayload.h"
 #include "Config.h"
 
 #include <string>
 
-class RegisterPayload : public Payload
+class RegisterReqPayload : public ReqPayload
 {
 public:
 	using name_t = std::string;
 	using pub_key_t = std::string;
 
-	RegisterPayload(const name_t& name, const pub_key_t& pubKey);
+	RegisterReqPayload(const name_t& name, const pub_key_t& pubKey);
 
 	bytes_t toBytes() override;
 	uint32_t getSize() override;

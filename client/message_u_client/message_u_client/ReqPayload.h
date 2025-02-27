@@ -3,7 +3,7 @@
 #include <vector>
 #include <cstdint>
 
-class Payload {
+class ReqPayload {
 public:
 	using bytes_t = std::vector<uint8_t>;
 

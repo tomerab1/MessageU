@@ -1,9 +1,9 @@
 #include "Request.h"
 #include "Config.h"
 #include "Utils.h"
-#include "Payload.h"
+#include "ReqPayload.h"
 
-Request::Header::Header(id_t id, char version, uint16_t code, uint32_t payloadSz)
+Request::Header::Header(id_t id, char version, RequestCodes code, uint32_t payloadSz)
 	: id{std::move(id)}, version{version}, code{code}, payloadSz{payloadSz}
 {
 }
@@ -17,13 +17,13 @@ Request::bytes_t Request::Header::toBytes()
 	offset += id.size();
 
 	Utils::serializeTrivialType(bytes, offset, version);
-	Utils::serializeTrivialType(bytes, offset, code);
+	Utils::serializeTrivialType(bytes, offset, Utils::EnumToUint16(code));
 	Utils::serializeTrivialType(bytes, offset, payloadSz);
 
 	return bytes;
 }
 
-Request::Request(Request::id_t id, uint16_t code, payload_t payload)
+Request::Request(Request::id_t id, RequestCodes code, payload_t payload)
 	: m_payload{std::move(payload)}, m_header{id, Config::VERSION, code, payload->getSize()}
 {
 }
