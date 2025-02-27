@@ -3,6 +3,9 @@ from proto.response import ResponseCodes, ResponseFactory, Response
 from proto.request import RequestCodes, RegistrationPayload, GetPublicKeyPayload
 from services.client_service import ClientService
 from services.message_service import MessagesService
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Controller:
@@ -19,6 +22,7 @@ class Controller:
     def _install_handlers(self):
         self._hanlders[RequestCodes.REGISTER.value] = self.register
         self._hanlders[RequestCodes.LIST_USERS.value] = self.list_users
+        self._hanlders[RequestCodes.GET_PUB_KEY.value] = self.get_pub_key
 
     def multiplex(self, ctx: Context):
         try:
@@ -27,7 +31,7 @@ class Controller:
             res = self._hanlders[code](ctx, payload)
             return res
         except Exception as e:
-            print(e)
+            logger.warning(e)
             ctx.write(ResponseFactory.create_response(ResponseCodes.ERROR))
 
     def register(self, ctx: Context, register_payload: RegistrationPayload) -> Response:

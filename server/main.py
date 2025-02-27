@@ -32,10 +32,6 @@ class MessageUServer:
                 cb = key.data
                 cb(key.fileobj, mask)
 
-    def shutdown(self):
-        self._sel.close()
-        self._sock.close()
-
     def _setup_controller(self):
         repo = RamRepository()
 
@@ -73,6 +69,10 @@ class MessageUServer:
         print("Ctrl+C pressed, exisitng gracefully")
         self.shutdown()
         sys.exit(0)
+
+    def shutdown(self):
+        self._sel.close()
+        self._sock.close()
 
 
 def main():
