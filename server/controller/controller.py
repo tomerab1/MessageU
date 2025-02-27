@@ -36,6 +36,7 @@ class Controller:
 
     def register(self, ctx: Context, register_payload: RegistrationPayload) -> Response:
         new_client = self._client_service.create(register_payload)
+        print(new_client)
         ctx.write(
             ResponseFactory.create_response(
                 ResponseCodes.REG_OK,

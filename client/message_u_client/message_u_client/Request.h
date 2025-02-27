@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-static constexpr size_t CLIENT_ID_SZ = 16;
+#include "Config.h"
 
 class Payload;
 
@@ -13,7 +13,7 @@ class Request {
 public:
 	using payload_t = std::unique_ptr<Payload>;
 	using bytes_t = std::vector<uint8_t>;
-	using id_t = std::array<uint8_t, CLIENT_ID_SZ>;
+	using id_t = std::array<uint8_t, Config::CLIENT_ID_SZ>;
 	
 	struct Header {
 		id_t id;
@@ -32,6 +32,6 @@ public:
 	~Request();
 
 private:
-	const Header m_header;
+	Header m_header;
 	payload_t m_payload;
 };

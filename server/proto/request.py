@@ -19,7 +19,7 @@ class ReqPayload(ABC):
 
 @dataclass
 class RegistrationPayload(ReqPayload):
-    _PAYLOAD_FMT = "<255B160B"
+    _PAYLOAD_FMT = "!255B160B"
 
     username: str
     public_key: str
@@ -32,7 +32,8 @@ class RegistrationPayload(ReqPayload):
             key = bytes(data[255:]).rstrip(b"\x00").decode("utf-8")
 
             return cls(username, key)
-        except Exception:
+        except Exception as e:
+            print(e)
             raise InvalidPayloadError()
 
 
@@ -56,7 +57,7 @@ class PollMessagesPayload(ReqPayload):
 
 @dataclass
 class GetPublicKeyPayload(ReqPayload):
-    _PAYLOAD_FMT = "<16s"
+    _PAYLOAD_FMT = "!16s"
 
     user_id: str
 
@@ -92,7 +93,7 @@ class MessageTypes(Enum):
 
 @dataclass
 class SendMessagePayload(ReqPayload):
-    _PAYLOAD_FMT = "<16sBI"
+    _PAYLOAD_FMT = "!16sBI"
     _PAYLOAD_SZ = struct.calcsize(_PAYLOAD_FMT)
 
     client_id: str
@@ -144,7 +145,7 @@ class RequestCodes(Enum):
 
 
 class Request:
-    _HEADER_FMT = "<16sBHI"
+    _HEADER_FMT = "!16sBHI"
     _HEADER_SZ = struct.calcsize(_HEADER_FMT)
     _PAYLOAD_CLASSES = {}
 
