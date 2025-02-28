@@ -38,7 +38,7 @@ class Controller:
             res = self._hanlders[code](ctx, payload)
             return res
         except Exception as e:
-            logger.warning(e)
+            print(e)
             print(ResponseFactory.create_response(ResponseCodes.ERROR))
             conn.send(ResponseFactory.create_response(ResponseCodes.ERROR).to_bytes())
 

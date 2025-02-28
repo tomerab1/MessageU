@@ -32,3 +32,23 @@ uint32_t UsersListReqPayload::getSize()
 {
     return 0;
 }
+
+GetPublicKeyReqPayload::GetPublicKeyReqPayload(const std::string& targetId)
+    : m_targetId{targetId}
+{
+}
+
+GetPublicKeyReqPayload::bytes_t GetPublicKeyReqPayload::toBytes()
+{
+    bytes_t bytes;
+
+    bytes.resize(Config::CLIENT_ID_SZ);
+    std::copy(m_targetId.begin(), m_targetId.end(), bytes.begin());
+
+    return bytes;
+}
+
+uint32_t GetPublicKeyReqPayload::getSize()
+{
+    return Config::CLIENT_ID_SZ;
+}

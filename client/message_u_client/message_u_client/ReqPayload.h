@@ -33,3 +33,20 @@ public:
 	bytes_t toBytes() override;
 	uint32_t getSize() override;
 };
+
+class GetPublicKeyReqPayload : public ReqPayload {
+public:
+	GetPublicKeyReqPayload(const std::string& targetId);
+
+	bytes_t toBytes() override;
+	uint32_t getSize() override;
+
+private:
+	std::string m_targetId;
+};
+
+class SendMessagePayload : public ReqPayload {};
+
+class PollMessagesPayload : public ReqPayload {
+
+};

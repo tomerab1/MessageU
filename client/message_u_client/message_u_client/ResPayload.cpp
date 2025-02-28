@@ -15,7 +15,7 @@ ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes 
 	case ResponseCodes::USRS_LIST:
 		return std::make_unique<UsersListResPayload>(bytes);
 	case ResponseCodes::PUB_KEY:
-		break;
+		return std::make_unique<PublicKeyResPayload>(bytes);
 	case ResponseCodes::MSG_SEND:
 		break;
 	case ResponseCodes::POLL_MSGS:
@@ -52,7 +52,7 @@ const ResponseCodes RegistrationResPayload::getResCode() const
 UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 {
 	if (bytes.empty()) {
-		return;
+		throw std::runtime_error("Error: UsersListResPayload payload is empty");
 	}
 
 	size_t numUsers = bytes.size() / (Config::CLIENT_ID_SZ + Config::NAME_MAX_SZ);
@@ -65,10 +65,10 @@ UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 		curr.name.resize(Config::NAME_MAX_SZ);
 
 		std::copy(bytes.begin() + offset, bytes.begin() + offset + Config::CLIENT_ID_SZ, curr.id.begin());
-		offset += curr.id.size();
+		offset += Config::CLIENT_ID_SZ;
 
 		std::copy(bytes.begin() + offset, bytes.begin() + offset + Config::NAME_MAX_SZ, curr.name.begin());
-		offset += curr.name.size();
+		offset += Config::NAME_MAX_SZ;
 
 		curr.id.shrink_to_fit();
 		curr.name.shrink_to_fit();
@@ -83,4 +83,27 @@ const ResponseCodes UsersListResPayload::getResCode() const
 const std::vector<UsersListResPayload::UserEntry>& UsersListResPayload::getUsers() const
 {
 	return m_users;
+}
+
+PublicKeyResPayload::PublicKeyResPayload(const bytes_t& bytes)
+{
+	if (bytes.empty()) {
+		throw std::runtime_error("Error: PublicKeyPayload payload is empty");
+	}
+
+	m_entry.id.resize(Config::CLIENT_ID_SZ);
+	m_entry.pubKey.resize(Config::PUB_KEY_SZ);
+
+	std::copy(bytes.begin(), bytes.begin() + Config::CLIENT_ID_SZ, m_entry.id.begin());
+	std::copy(bytes.begin(), bytes.begin() + Config::PUB_KEY_SZ, m_entry.pubKey.begin());
+}
+
+const ResponseCodes PublicKeyResPayload::getResCode() const
+{
+	return ResponseCodes::PUB_KEY;
+}
+
+const PublicKeyResPayload::PublicKeyEntry& PublicKeyResPayload::getPubKeyEntry() const
+{
+	return m_entry;
 }

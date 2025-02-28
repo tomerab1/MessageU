@@ -21,13 +21,21 @@ int main()
 		boost::asio::connect(sock, resolver.resolve("localhost", "1234"));
 		std::cout << "Connected\n";
 
+		/*Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+			RequestCodes::REGISTER,
+			std::make_unique<RegisterReqPayload>("Amit", "secret_key = amit123") };*/
+
 		//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-		//	RequestCodes::REGISTER,
-		//	std::make_unique<RegisterReqPayload>("Michael Jackson |._.|", "secret_key=123") };
+		//	RequestCodes::USRS_LIST,
+		//	std::make_unique<UsersListReqPayload>()};
+
+		std::string id{"4A84FFCB65AA4EA2B5125DAD585B32DA"};
+		std::string unhex{};
+		boost::algorithm::unhex(id, std::back_inserter(unhex));
 
 		Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-			RequestCodes::USRS_LIST,
-			std::make_unique<UsersListReqPayload>()};
+			RequestCodes::GET_PUB_KEY,
+			std::make_unique<GetPublicKeyReqPayload>(unhex) };
 
 		auto toWrite = req.toBytes();
 
@@ -58,6 +66,13 @@ int main()
 			}
 		}
 		break;
+		case ResponseCodes::PUB_KEY: {
+			auto pubKey = dynamic_cast<const PublicKeyResPayload*>(&res.getPayload());
+			if (pubKey) {
+				std::cout << boost::algorithm::hex(pubKey->getPubKeyEntry().id) << '\t' << pubKey->getPubKeyEntry().pubKey << '\n';
+			}
+		}
+		break;
 		default:
 			break;
 		}
@@ -66,7 +81,6 @@ int main()
 	catch (const std::exception& e) {
 		std::cout << e.what() << '\n';
 	}
-
 
 	return 0;
 }

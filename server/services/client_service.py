@@ -10,7 +10,11 @@ class ClientService:
         self._client_repo = repo
 
     def find_by_id(self, uuid) -> ClientEntity:
-        return self._client_repo.find_one(filter_cb=lambda record: uuid in record)
+        (client, *_) = self._client_repo.find_one(
+            filter_cb=lambda record: uuid == record[1].get_uuid()
+        ).values()
+
+        return client
 
     def find_all(self):
         return self._client_repo.find_all()

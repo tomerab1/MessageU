@@ -47,7 +47,21 @@ private:
 	std::vector<UserEntry> m_users;
 };
 
-class PublicKeyPayload : public ResPayload {};
+class PublicKeyResPayload : public ResPayload {
+public:
+	PublicKeyResPayload(const bytes_t& bytes);
+
+	struct PublicKeyEntry {
+		std::string id;
+		std::string pubKey;
+	};
+
+	const ResponseCodes getResCode() const override;
+	const PublicKeyEntry& getPubKeyEntry() const;
+
+private:
+	PublicKeyEntry  m_entry;
+};
 
 class MessageSentPayload : public ResPayload {};
 

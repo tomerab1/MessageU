@@ -66,9 +66,9 @@ class GetPublicKeyPayload(ReqPayload):
         try:
             data = struct.unpack(GetPublicKeyPayload._PAYLOAD_FMT, data)
             (client_id,) = data
-            return cls(client_id.decode("utf-8"))
-        except Exception:
-            raise InvalidPayloadError()
+            return cls(client_id)
+        except Exception as e:
+            raise InvalidPayloadError(e)
 
 
 class MessageTypes(Enum):
