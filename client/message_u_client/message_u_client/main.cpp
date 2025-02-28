@@ -23,7 +23,7 @@ int main()
 
 		/*Request req{ std::string(Config::CLIENT_ID_SZ, 0),
 			RequestCodes::REGISTER,
-			std::make_unique<RegisterReqPayload>("Amit", "secret_key = amit123") };*/
+			std::make_unique<RegisterReqPayload>("Michael Jackson", "secret_key = hello123") };*/
 
 		//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
 		//	RequestCodes::USRS_LIST,
