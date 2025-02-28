@@ -3,7 +3,7 @@
 #include "Utils.h"
 #include "ReqPayload.h"
 
-Request::Header::Header(id_t id, char version, RequestCodes code, uint32_t payloadSz)
+Request::Header::Header(const std::string& id, char version, RequestCodes code, uint32_t payloadSz)
 	: id{std::move(id)}, version{version}, code{code}, payloadSz{payloadSz}
 {
 }
@@ -23,7 +23,7 @@ Request::bytes_t Request::Header::toBytes()
 	return bytes;
 }
 
-Request::Request(Request::id_t id, RequestCodes code, payload_t payload)
+Request::Request(const std::string& id, RequestCodes code, payload_t payload)
 	: m_payload{std::move(payload)}, m_header{id, Config::VERSION, code, payload->getSize()}
 {
 }

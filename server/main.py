@@ -55,8 +55,7 @@ class MessageUServer:
         try:
             data = conn.recv(1024)
             if data:
-                ctx = Context(conn, Request(data))
-                self._controller.multiplex(ctx)
+                self._controller.dispatch(conn, data)
         except Exception as e:
             print(f"{e}")
             self._sel.unregister(conn)

@@ -2,26 +2,37 @@
 #include <boost/asio.hpp>
 
 #include "Request.h"
+#include "Response.h"
 #include "RegisterReqPayload.h"
+#include "Config.h"
 
 using boost::asio::ip::tcp;
 
 int main()
 {
-	boost::asio::io_context ctx;
-	tcp::socket sock{ ctx };
-	tcp::resolver resolver{ ctx };
+	try {
+		boost::asio::io_context ctx;
+		tcp::socket sock{ ctx };
+		tcp::resolver resolver{ ctx };
 
-	boost::asio::connect(sock, resolver.resolve("localhost", "1234"));
-	std::cout << "Connected\n";
+		boost::asio::connect(sock, resolver.resolve("localhost", "1234"));
+		std::cout << "Connected\n";
 
-	Request req{ std::array<uint8_t, Config::CLIENT_ID_SZ>{"123456789111111"},
-		RequestCodes::REGISTER,
-		std::make_unique<RegisterReqPayload>("Tomer", "secret_key=123") };
+		Request req{ std::string(Config::CLIENT_ID_SZ - 2, 0),
+			RequestCodes::REGISTER,
+			std::make_unique<RegisterReqPayload>("Tomer", "secret_key=123") };
 
-	auto bytes = req.toBytes();
+		auto toWrite = req.toBytes();
 
-	boost::asio::write(sock, boost::asio::buffer(bytes.data(), bytes.size()));
+		boost::asio::write(sock, boost::asio::buffer(toWrite.data(), toWrite.size()));
+
+		std::vector<uint8_t> headerBytes(Config::RES_HEADER_SZ, 0);
+		boost::asio::read(sock, boost::asio::buffer(headerBytes.data(), headerBytes.size()));
+		auto header = Response::Header::fromBytes(headerBytes);
+	}
+	catch (const std::exception& e) {
+		std::cout << e.what() << '\n';
+	}
 
 
 	return 0;

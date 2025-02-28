@@ -1,6 +1,11 @@
 from proto.context import Context
 from proto.response import ResponseCodes, ResponseFactory, Response
-from proto.request import RequestCodes, RegistrationPayload, GetPublicKeyPayload
+from proto.request import (
+    Request,
+    RequestCodes,
+    RegistrationPayload,
+    GetPublicKeyPayload,
+)
 from services.client_service import ClientService
 from services.message_service import MessagesService
 import logging
@@ -24,15 +29,18 @@ class Controller:
         self._hanlders[RequestCodes.LIST_USERS.value] = self.list_users
         self._hanlders[RequestCodes.GET_PUB_KEY.value] = self.get_pub_key
 
-    def multiplex(self, ctx: Context):
+    def dispatch(self, conn, packet):
         try:
+            ctx = Context(conn, Request(packet))
+
             code = ctx.get_req().get_header().code
             payload = ctx.get_req().get_payload()
             res = self._hanlders[code](ctx, payload)
             return res
         except Exception as e:
             logger.warning(e)
-            ctx.write(ResponseFactory.create_response(ResponseCodes.ERROR))
+            print(ResponseFactory.create_response(ResponseCodes.ERROR))
+            conn.send(ResponseFactory.create_response(ResponseCodes.ERROR).to_bytes())
 
     def register(self, ctx: Context, register_payload: RegistrationPayload) -> Response:
         new_client = self._client_service.create(register_payload)
