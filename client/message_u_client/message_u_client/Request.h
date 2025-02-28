@@ -11,6 +11,7 @@ class ReqPayload;
 
 enum class RequestCodes: uint16_t {
 	REGISTER = 600,
+	USRS_LIST = 601,
 };
 
 class Request {

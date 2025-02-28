@@ -5,7 +5,12 @@
 #include <memory>
 
 enum class ResponseCodes : uint16_t {
-	REG_OK = 2100
+	REG_OK = 2100,
+	USRS_LIST = 2101,
+	PUB_KEY = 2102,
+	MSG_SEND = 2103,
+	POLL_MSGS = 2104,
+	ERR = 9000,
 };
 
 class ResPayload;

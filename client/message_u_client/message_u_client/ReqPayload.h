@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <string>
 
 class ReqPayload {
 public:
@@ -9,4 +10,26 @@ public:
 
 	virtual bytes_t toBytes() = 0;
 	virtual uint32_t getSize() = 0;
+};
+
+class RegisterReqPayload : public ReqPayload
+{
+public:
+	using name_t = std::string;
+	using pub_key_t = std::string;
+
+	RegisterReqPayload(const name_t& name, const pub_key_t& pubKey);
+
+	bytes_t toBytes() override;
+	uint32_t getSize() override;
+
+private:
+	name_t m_name;
+	pub_key_t m_pubKey;
+};
+
+class UsersListReqPayload : public ReqPayload {
+public:
+	bytes_t toBytes() override;
+	uint32_t getSize() override;
 };

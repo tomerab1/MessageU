@@ -13,21 +13,44 @@ public:
 
 	static payload_t fromBytes(const bytes_t& bytes, ResponseCodes code);
 
-	virtual const std::string& getUUID() const = 0;
 	virtual const ResponseCodes getResCode() const = 0;
 
-	virtual ~ResPayload() {}
+	virtual ~ResPayload() = default;
 };
 
-class RegistrationOkPayload : public ResPayload {
+class RegistrationResPayload : public ResPayload {
 public:
-	RegistrationOkPayload(const bytes_t& bytes);
+	RegistrationResPayload(const bytes_t& bytes);
 
-	const std::string& getUUID() const override;
+	const std::string& getUUID() const;
 	const ResponseCodes getResCode() const override;
 
-	~RegistrationOkPayload() {}
+	~RegistrationResPayload() = default;
 
 private:
 	std::string m_uuid;
 };
+
+class UsersListResPayload : public ResPayload {
+public:
+	UsersListResPayload(const bytes_t& bytes);
+
+	struct UserEntry {
+		std::string id;
+		std::string name;
+	};
+
+	const ResponseCodes getResCode() const override;
+	const std::vector<UserEntry>& getUsers() const;
+
+private:
+	std::vector<UserEntry> m_users;
+};
+
+class PublicKeyPayload : public ResPayload {};
+
+class MessageSentPayload : public ResPayload {};
+
+class PollMessagePayload : public ResPayload {};
+
+class ErrorPayload : public ResPayload {};

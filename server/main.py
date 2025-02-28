@@ -1,7 +1,5 @@
 from config.config import Config
 from controller.controller import Controller
-from proto.context import Context
-from proto.request import Request
 from repository.ram_repository import RamRepository
 from services.client_service import ClientService
 from services.message_service import MessagesService
@@ -27,7 +25,7 @@ class MessageUServer:
     def serve(self):
         print(f"Serving on port {self._port}...")
         while True:
-            events = self._sel.select()
+            events = self._sel.select(timeout=0.1)
             for key, mask in events:
                 cb = key.data
                 cb(key.fileobj, mask)
@@ -78,7 +76,6 @@ def main():
     try:
         Config.load()
         server = MessageUServer(port=Config.PORT)
-
         server.serve()
     except Exception as e:
         print(e)

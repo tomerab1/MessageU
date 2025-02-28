@@ -1,10 +1,11 @@
 ﻿#include <iostream>
 #include <boost/asio.hpp>
+#include <boost/algorithm/hex.hpp>
 
 #include "Request.h"
 #include "Response.h"
-#include "RegisterReqPayload.h"
 #include "ResPayload.h"
+#include "ReqPayload.h"
 #include "Config.h"
 #include "Utils.h"
 
@@ -20,9 +21,13 @@ int main()
 		boost::asio::connect(sock, resolver.resolve("localhost", "1234"));
 		std::cout << "Connected\n";
 
+		//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+		//	RequestCodes::REGISTER,
+		//	std::make_unique<RegisterReqPayload>("Michael Jackson |._.|", "secret_key=123") };
+
 		Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-			RequestCodes::REGISTER,
-			std::make_unique<RegisterReqPayload>("Tomer", "secret_key=123") };
+			RequestCodes::USRS_LIST,
+			std::make_unique<UsersListReqPayload>()};
 
 		auto toWrite = req.toBytes();
 
@@ -36,7 +41,26 @@ int main()
 		boost::asio::read(sock, boost::asio::buffer(payloadBytes.data(), payloadBytes.size()));
 		auto res = Response(header, payloadBytes);
 
-		std::cout << Utils::EnumToUint16(res.getPayload().getResCode()) << '\n';
+		switch (res.getPayload().getResCode()) {
+		case ResponseCodes::REG_OK: {
+			auto regOk = dynamic_cast<const RegistrationResPayload*>(&res.getPayload());
+			if (regOk) {
+				std::cout << "REG_OK: " << boost::algorithm::hex(regOk->getUUID()) << '\n';
+			}
+		}
+		break;
+		case ResponseCodes::USRS_LIST: {
+			auto usrsList = dynamic_cast<const UsersListResPayload*>(&res.getPayload());
+			if (usrsList) {
+				for (const auto& user : usrsList->getUsers()) {
+					std::cout << boost::algorithm::hex(user.id) << '\t' << user.name << '\n';
+				}
+			}
+		}
+		break;
+		default:
+			break;
+		}
 
 	}
 	catch (const std::exception& e) {

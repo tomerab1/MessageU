@@ -24,13 +24,13 @@
     <ClCompile Include="Config.h">
       <Filter>Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="RegisterPayload.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Response.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ResPayload.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ReqPayload.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -45,9 +45,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ReqPayload.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RegisterReqPayload.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Response.h">
