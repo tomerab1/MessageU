@@ -13,10 +13,10 @@ Response::Header Response::Header::fromBytes(const bytes_t& bytes)
     return {version, static_cast<ResponseCodes>(code), payloadSz};
 }
 
-Response::Response(const bytes_t& bytes)
+Response::Response(const Header& header, const bytes_t& payloadBytes)
+    : m_header{header}
 {
-    this->m_header = Header::fromBytes(bytes);
-    this->m_payload = nullptr;
+    m_payload = ResPayload::fromBytes(payloadBytes, m_header.code);
 }
 
 const Response::Header& Response::getHeader()
@@ -28,3 +28,5 @@ const ResPayload& Response::getPayload()
 {
     return *m_payload;
 }
+
+Response::~Response() = default;

@@ -4,7 +4,7 @@
 #include "ReqPayload.h"
 
 Request::Header::Header(const std::string& id, char version, RequestCodes code, uint32_t payloadSz)
-	: id{std::move(id)}, version{version}, code{code}, payloadSz{payloadSz}
+	: id{id}, version{version}, code{code}, payloadSz{payloadSz}
 {
 }
 

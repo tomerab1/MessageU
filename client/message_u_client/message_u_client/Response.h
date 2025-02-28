@@ -4,11 +4,11 @@
 #include <vector>
 #include <memory>
 
-class ResPayload;
-
 enum class ResponseCodes : uint16_t {
 	REG_OK = 2100
 };
+
+class ResPayload;
 
 class Response {
 public:
@@ -23,11 +23,12 @@ public:
 		static Header fromBytes(const bytes_t& bytes);
 	};
 
-	Response(const bytes_t& bytes);
+	Response(const Header& header, const bytes_t& payloadBytes);
 
 	const Header& getHeader();
 	const ResPayload& getPayload();
 
+	~Response();
 
 private:
 	Header m_header;
