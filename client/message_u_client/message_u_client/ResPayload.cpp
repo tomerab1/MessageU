@@ -70,7 +70,6 @@ UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 		std::copy(bytes.begin() + offset, bytes.begin() + offset + Config::NAME_MAX_SZ, curr.name.begin());
 		offset += Config::NAME_MAX_SZ;
 
-		curr.id.shrink_to_fit();
 		curr.name.shrink_to_fit();
 	}
 }

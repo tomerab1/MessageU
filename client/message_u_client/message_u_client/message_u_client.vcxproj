@@ -128,7 +128,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Client.cpp" />
     <ClCompile Include="Config.h" />
+    <ClCompile Include="Connection.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ReqPayload.cpp" />
     <ClCompile Include="Request.cpp" />
@@ -139,6 +141,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Client.h" />
+    <ClInclude Include="Connection.h" />
     <ClInclude Include="ReqPayload.h" />
     <ClInclude Include="Request.h" />
     <ClInclude Include="ResPayload.h" />

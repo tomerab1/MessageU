@@ -32,14 +32,13 @@ class Controller:
     def dispatch(self, conn, packet):
         try:
             ctx = Context(conn, Request(packet))
-
             code = ctx.get_req().get_header().code
             payload = ctx.get_req().get_payload()
             res = self._hanlders[code](ctx, payload)
+
             return res
         except Exception as e:
-            print(e)
-            print(ResponseFactory.create_response(ResponseCodes.ERROR))
+            logger.warning(e)
             conn.send(ResponseFactory.create_response(ResponseCodes.ERROR).to_bytes())
 
     def register(self, ctx: Context, register_payload: RegistrationPayload) -> Response:

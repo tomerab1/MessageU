@@ -8,6 +8,7 @@
 #include "ReqPayload.h"
 #include "Config.h"
 #include "Utils.h"
+#include "Connection.h"
 
 using boost::asio::ip::tcp;
 
@@ -15,39 +16,58 @@ int main()
 {
 	try {
 		boost::asio::io_context ctx;
-		tcp::socket sock{ ctx };
-		tcp::resolver resolver{ ctx };
 
-		boost::asio::connect(sock, resolver.resolve("localhost", "1234"));
-		std::cout << "Connected\n";
+		Connection conn{ ctx, "localhost", "1234" };
 
-		/*Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-			RequestCodes::REGISTER,
-			std::make_unique<RegisterReqPayload>("Michael Jackson", "secret_key = hello123") };*/
+		std::string name = "Michael Jackson";
+		std::string pubKey = "secret_key = hello123";
 
-		//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-		//	RequestCodes::USRS_LIST,
-		//	std::make_unique<UsersListReqPayload>()};
+		conn.addRequestHandler(RequestCodes::REGISTER, [&name, &pubKey](Connection* conn, RequestCodes code) {
+			Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+				code,
+				std::make_unique<RegisterReqPayload>(name, pubKey) };
 
-		std::string id{"4A84FFCB65AA4EA2B5125DAD585B32DA"};
+			auto toWrite = req.toBytes();
+			conn->send(toWrite);
+
+			auto header = conn->readHeader();
+			auto payloadBytes = conn->readPayload(std::move(header));
+
+			return Response(header, payloadBytes);
+		});
+
+		conn.addRequestHandler(RequestCodes::USRS_LIST, [](Connection* conn, RequestCodes code) {
+			Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+				code,
+				std::make_unique<UsersListReqPayload>()};
+
+			auto toWrite = req.toBytes();
+			conn->send(toWrite);
+
+			auto header = conn->readHeader();
+			auto payloadBytes = conn->readPayload(std::move(header));
+
+			return Response(header, payloadBytes);
+		});
+
+		std::string id{"862BF1B792404EEB920406D49A58A806"};
 		std::string unhex{};
 		boost::algorithm::unhex(id, std::back_inserter(unhex));
-
-		Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-			RequestCodes::GET_PUB_KEY,
+		conn.addRequestHandler(RequestCodes::GET_PUB_KEY, [&unhex](Connection* conn, RequestCodes code) {
+			Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+			code,
 			std::make_unique<GetPublicKeyReqPayload>(unhex) };
 
-		auto toWrite = req.toBytes();
+			auto toWrite = req.toBytes();
+			conn->send(toWrite);
 
-		boost::asio::write(sock, boost::asio::buffer(toWrite.data(), toWrite.size()));
+			auto header = conn->readHeader();
+			auto payloadBytes = conn->readPayload(std::move(header));
 
-		std::vector<uint8_t> headerBytes(Config::RES_HEADER_SZ, 0);
-		boost::asio::read(sock, boost::asio::buffer(headerBytes.data(), headerBytes.size()));
-		auto header = Response::Header::fromBytes(headerBytes);
+			return Response(header, payloadBytes);
+		});
 
-		std::vector<uint8_t> payloadBytes(header.payloadSz, 0);
-		boost::asio::read(sock, boost::asio::buffer(payloadBytes.data(), payloadBytes.size()));
-		auto res = Response(header, payloadBytes);
+		auto res = conn.dispatch(RequestCodes::USRS_LIST);
 
 		switch (res.getPayload().getResCode()) {
 		case ResponseCodes::REG_OK: {
@@ -76,7 +96,6 @@ int main()
 		default:
 			break;
 		}
-
 	}
 	catch (const std::exception& e) {
 		std::cout << e.what() << '\n';
