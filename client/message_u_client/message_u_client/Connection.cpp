@@ -1,4 +1,5 @@
 #include "Connection.h"
+#include "Request.h"
 #include "ResPayload.h"
 #include "Utils.h"
 #include "Config.h"
@@ -9,12 +10,12 @@ Connection::Connection(io_ctx_t& ctx, const std::string& addr, const std::string
 	boost::asio::connect(m_socket, m_resolver.resolve(addr, port));
 }
 
-void Connection::addRequestHandler(RequestCodes code, std::function<response_t(Connection*, RequestCodes)> handler)
+void Connection::addRequestHandler(RequestCodes code, std::function<Response(Connection*, RequestCodes)> handler)
 {
 	m_handlerMap.insert({ Utils::EnumToUint16(code), handler });
 }
 
-Connection::response_t Connection::dispatch(RequestCodes code)
+Response Connection::dispatch(RequestCodes code)
 {
 	return m_handlerMap[Utils::EnumToUint16(code)](this, code);
 }
@@ -33,9 +34,17 @@ Connection::bytes_t Connection::readPayload(header_t header)
 	return payloadBytes;
 }
 
-void Connection::send(const bytes_t& bytes)
+void Connection::send(Request& req)
 {
+	auto bytes = req.toBytes();
 	boost::asio::write(m_socket, boost::asio::buffer(bytes.data(), bytes.size()));
+}
+
+Response Connection::recvResponse()
+{
+	auto header = readHeader();
+	auto payloadBytes = readPayload(std::move(header));
+	return Response(header, payloadBytes);
 }
 
 size_t Connection::recv(bytes_t& outBytes, size_t recvSz)

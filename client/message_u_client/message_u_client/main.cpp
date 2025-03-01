@@ -16,7 +16,6 @@ int main()
 {
 	try {
 		boost::asio::io_context ctx;
-
 		Connection conn{ ctx, "localhost", "1234" };
 
 		std::string name = "Michael Jackson";
@@ -27,13 +26,8 @@ int main()
 				code,
 				std::make_unique<RegisterReqPayload>(name, pubKey) };
 
-			auto toWrite = req.toBytes();
-			conn->send(toWrite);
-
-			auto header = conn->readHeader();
-			auto payloadBytes = conn->readPayload(std::move(header));
-
-			return Response(header, payloadBytes);
+			conn->send(req);
+			return conn->recvResponse();
 		});
 
 		conn.addRequestHandler(RequestCodes::USRS_LIST, [](Connection* conn, RequestCodes code) {
@@ -41,16 +35,11 @@ int main()
 				code,
 				std::make_unique<UsersListReqPayload>()};
 
-			auto toWrite = req.toBytes();
-			conn->send(toWrite);
-
-			auto header = conn->readHeader();
-			auto payloadBytes = conn->readPayload(std::move(header));
-
-			return Response(header, payloadBytes);
+			conn->send(req);
+			return conn->recvResponse();
 		});
 
-		std::string id{"862BF1B792404EEB920406D49A58A806"};
+		std::string id{"729E2797ABE345BA87E3472C270ADE36"};
 		std::string unhex{};
 		boost::algorithm::unhex(id, std::back_inserter(unhex));
 		conn.addRequestHandler(RequestCodes::GET_PUB_KEY, [&unhex](Connection* conn, RequestCodes code) {
@@ -58,13 +47,8 @@ int main()
 			code,
 			std::make_unique<GetPublicKeyReqPayload>(unhex) };
 
-			auto toWrite = req.toBytes();
-			conn->send(toWrite);
-
-			auto header = conn->readHeader();
-			auto payloadBytes = conn->readPayload(std::move(header));
-
-			return Response(header, payloadBytes);
+			conn->send(req);
+			return conn->recvResponse();
 		});
 
 		auto res = conn.dispatch(RequestCodes::USRS_LIST);
