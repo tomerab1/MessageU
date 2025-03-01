@@ -13,7 +13,7 @@ public:
 
 	static payload_t fromBytes(const bytes_t& bytes, ResponseCodes code);
 
-	virtual const ResponseCodes getResCode() const = 0;
+	virtual std::string toString() const = 0;
 
 	virtual ~ResPayload() = default;
 };
@@ -22,8 +22,8 @@ class RegistrationResPayload : public ResPayload {
 public:
 	RegistrationResPayload(const bytes_t& bytes);
 
+	std::string toString() const override;
 	const std::string& getUUID() const;
-	const ResponseCodes getResCode() const override;
 
 	~RegistrationResPayload() = default;
 
@@ -40,7 +40,7 @@ public:
 		std::string name;
 	};
 
-	const ResponseCodes getResCode() const override;
+	std::string toString() const override;
 	const std::vector<UserEntry>& getUsers() const;
 
 private:
@@ -56,7 +56,7 @@ public:
 		std::string pubKey;
 	};
 
-	const ResponseCodes getResCode() const override;
+	std::string toString() const override;
 	const PublicKeyEntry& getPubKeyEntry() const;
 
 private:

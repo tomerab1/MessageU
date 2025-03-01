@@ -52,34 +52,7 @@ int main()
 		});
 
 		auto res = conn.dispatch(RequestCodes::USRS_LIST);
-
-		switch (res.getPayload().getResCode()) {
-		case ResponseCodes::REG_OK: {
-			auto regOk = dynamic_cast<const RegistrationResPayload*>(&res.getPayload());
-			if (regOk) {
-				std::cout << "REG_OK: " << boost::algorithm::hex(regOk->getUUID()) << '\n';
-			}
-		}
-		break;
-		case ResponseCodes::USRS_LIST: {
-			auto usrsList = dynamic_cast<const UsersListResPayload*>(&res.getPayload());
-			if (usrsList) {
-				for (const auto& user : usrsList->getUsers()) {
-					std::cout << boost::algorithm::hex(user.id) << '\t' << user.name << '\n';
-				}
-			}
-		}
-		break;
-		case ResponseCodes::PUB_KEY: {
-			auto pubKey = dynamic_cast<const PublicKeyResPayload*>(&res.getPayload());
-			if (pubKey) {
-				std::cout << boost::algorithm::hex(pubKey->getPubKeyEntry().id) << '\t' << pubKey->getPubKeyEntry().pubKey << '\n';
-			}
-		}
-		break;
-		default:
-			break;
-		}
+		std::cout << res.getPayload().toString() << '\n';
 	}
 	catch (const std::exception& e) {
 		std::cout << e.what() << '\n';

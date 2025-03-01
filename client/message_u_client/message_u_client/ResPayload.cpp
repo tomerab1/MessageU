@@ -5,6 +5,8 @@
 
 #include <stdexcept>
 #include <string>
+#include <sstream>
+#include <boost/algorithm/hex.hpp>
 
 ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes code)
 {
@@ -44,10 +46,15 @@ const std::string& RegistrationResPayload::getUUID() const
 	return m_uuid;
 }
 
-const ResponseCodes RegistrationResPayload::getResCode() const
+std::string RegistrationResPayload::toString() const
 {
-	return ResponseCodes::REG_OK;
+	std::stringstream ss;
+
+	ss << boost::algorithm::hex(getUUID());
+
+	return ss.str();
 }
+
 
 UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 {
@@ -74,9 +81,15 @@ UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 	}
 }
 
-const ResponseCodes UsersListResPayload::getResCode() const
+std::string UsersListResPayload::toString() const
 {
-	return ResponseCodes::USRS_LIST;
+	std::stringstream ss;
+
+	for (const auto& user : getUsers()) {
+		ss << boost::algorithm::hex(user.id) << '\t' << user.name << '\n';
+	}
+
+	return ss.str();
 }
 
 const std::vector<UsersListResPayload::UserEntry>& UsersListResPayload::getUsers() const
@@ -97,9 +110,14 @@ PublicKeyResPayload::PublicKeyResPayload(const bytes_t& bytes)
 	std::copy(bytes.begin(), bytes.begin() + Config::PUB_KEY_SZ, m_entry.pubKey.begin());
 }
 
-const ResponseCodes PublicKeyResPayload::getResCode() const
+std::string PublicKeyResPayload::toString() const
 {
-	return ResponseCodes::PUB_KEY;
+
+	std::stringstream ss;
+
+	ss << boost::algorithm::hex(getPubKeyEntry().id) << '\t' << getPubKeyEntry().pubKey << '\n';
+
+	return ss.str();
 }
 
 const PublicKeyResPayload::PublicKeyEntry& PublicKeyResPayload::getPubKeyEntry() const
