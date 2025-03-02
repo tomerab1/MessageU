@@ -10,8 +10,8 @@ class Connection;
 class Client
 {
 public:
-	using cli_t = std::unique_ptr<CLI>;
 	using context_t = boost::asio::io_context;
+	using cli_t = std::unique_ptr<CLI>;
 	using connection_t = std::unique_ptr<Connection>;
 
 	Client(context_t& ctx, const std::string& addr, const std::string& port);

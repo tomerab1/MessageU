@@ -79,6 +79,9 @@ int main()
 	catch (const std::exception& e) {
 		std::cout << e.what() << '\n';
 	}
+	catch (...) {
+		std::cout << "Unexpected error has occurred\n";
+	}
 
 	return 0;
 }

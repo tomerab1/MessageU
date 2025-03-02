@@ -6,8 +6,6 @@ from proto.request import (
     RegistrationPayload,
     GetPublicKeyPayload,
     SendMessagePayload,
-    MessageTypes,
-    PollMessagesPayload,
 )
 from services.client_service import ClientService
 from services.message_service import MessagesService

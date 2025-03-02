@@ -4,18 +4,41 @@
 #include <unordered_map>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <boost/asio.hpp>
 
 #include "Response.h"
 
 enum class RequestCodes : uint16_t;
+
 class ResPayload;
 class Request;
 
-class Middleware {
+class HeaderValidator {
 public:
-	virtual bool accept(const Response::Header& header) = 0;
-	virtual bool accept(const ResPayload& payload) = 0;
+	HeaderValidator();
+
+	void setReqCode(RequestCodes code);
+	bool accept(const std::vector<uint8_t>& bytes);
+	std::string what();
+
+	struct MapEntry {
+		MapEntry(ResponseCodes code, std::optional<uint32_t> expectedSz);
+
+		ResponseCodes expectedCode;
+		std::optional<uint32_t> expectedSz;
+	};
+
+private:
+	RequestCodes m_reqCode;
+	std::string m_err;
+	std::unordered_map<RequestCodes, MapEntry> m_reqCodeToExpectedRes;
+};
+
+class PayloadValidator {
+public:
+	bool accept(const std::vector<uint8_t>& bytes);
+	std::string what();
 };
 
 class Connection
@@ -27,7 +50,6 @@ public:
 	using header_t = Response::Header;
 	using bytes_t = std::vector<uint8_t>;
 	using handler_map_t = std::unordered_map<uint16_t, std::function<Response(Connection&, RequestCodes)>>;
-	using middleware_t = std::unique_ptr<Middleware>;
 
 	Connection(io_ctx_t& ctx, const std::string& addr, const std::string& port);
 
@@ -35,9 +57,6 @@ public:
 	Response dispatch(RequestCodes code);
 	void send(Request& req);
 	Response recvResponse();
-
-	void addHeaderMiddleware(const Middleware& middleware);
-	void addResponseMiddleware(const Middleware& middleware);
 
 private:
 	header_t readHeader();
@@ -50,7 +69,6 @@ private:
 	socket_t m_socket;
 
 	handler_map_t m_handlerMap;
-	std::vector<middleware_t> m_header_middleware;
-	std::vector<middleware_t> m_payload_middleware;
+	HeaderValidator m_headerValidator;
+	PayloadValidator m_payloadValidator;
 };
-
