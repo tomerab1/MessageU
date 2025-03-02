@@ -6,6 +6,8 @@ class Config:
     _PORT_PATH = "myport.info"
     PORT = 1357
     VERSION = 1
+    REQ_HEADER_SZ = 23
+    READ_SZ = 1024
 
     def load():
         try:

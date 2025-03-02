@@ -13,11 +13,6 @@ CLI::CLI(const std::string& header, const std::string& footer)
 {
 }
 
-void CLI::addHandler(CLIMenuOpts opt, const std::string& msg, handler_t handler)
-{
-	m_handlers.insert({ Utils::EnumToUint16(opt), CLIOpt {msg, handler} });
-}
-
 void CLI::run()
 {
 	while (true) {
@@ -50,6 +45,11 @@ void CLI::displayMenu()
 	}
 
 	std::cout << m_footer << '\n';
+}
+
+void CLI::addHandler(CLIMenuOpts opt, const std::string& msg, std::function<void(CLI&)> handler)
+{
+	m_handlers.insert({ Utils::EnumToUint16(opt), CLIOpt {msg, handler} });
 }
 
 void CLI::clearScreen()

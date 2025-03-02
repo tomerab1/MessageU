@@ -10,8 +10,12 @@ Connection::Connection(io_ctx_t& ctx, const std::string& addr, const std::string
 	boost::asio::connect(m_socket, m_resolver.resolve(addr, port));
 }
 
-void Connection::addRequestHandler(RequestCodes code, std::function<Response(Connection&, RequestCodes)> handler)
+void Connection::addHandler(RequestCodes code, std::function<Response(Connection&, RequestCodes)> handler)
 {
+	if (m_handlerMap.find(Utils::EnumToUint16(code)) != m_handlerMap.end()) {
+		return;
+	}
+
 	m_handlerMap.insert({ Utils::EnumToUint16(code), handler });
 }
 

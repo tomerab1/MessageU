@@ -8,22 +8,15 @@
 #include "ReqPayload.h"
 #include "Config.h"
 #include "Utils.h"
-#include "Connection.h"
-#include "CLI.h"
+#include "Client.h"
 
 int main()
 {
 	try {
-		CLI cli{"MessageU client at your service.", "?"};
+		boost::asio::io_context ctx;
+		Client client{ ctx, "localhost", "1234" };
 
-		cli.addHandler(CLIMenuOpts::REGISTER, "Register", [](CLI& cli) {
-			cli.clearScreen();
-			auto userInput = cli.getStr("Enter username: ");
-
-			std::cout << "The user typed " << userInput << '\n';
-		});
-
-		cli.run();
+		client.run();
 
 		/*boost::asio::io_context ctx;
 		Connection conn{ ctx, "localhost", "1234" };
