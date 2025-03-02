@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <string>
 
+enum class MessageTypes : uint8_t;
+
 class ReqPayload {
 public:
 	using bytes_t = std::vector<uint8_t>;
@@ -45,7 +47,19 @@ private:
 	std::string m_targetId;
 };
 
-class SendMessagePayload : public ReqPayload {};
+class SendMessageReqPayload : public ReqPayload {
+public:
+	SendMessageReqPayload(const std::string& targetId, MessageTypes type, uint32_t msgSz, const std::string& msg);
+
+	bytes_t toBytes() override;
+	uint32_t getSize() override;
+
+private:
+	std::string m_targetId;
+	MessageTypes m_type;
+	uint32_t m_msgSz;
+	std::string m_msg;
+};
 
 class PollMessagesPayload : public ReqPayload {
 

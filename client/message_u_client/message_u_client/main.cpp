@@ -10,15 +10,13 @@
 #include "Utils.h"
 #include "Connection.h"
 
-using boost::asio::ip::tcp;
-
 int main()
 {
 	try {
 		boost::asio::io_context ctx;
 		Connection conn{ ctx, "localhost", "1234" };
 
-		std::string name = "Michael Jackson";
+		std::string name = "Tomer";
 		std::string pubKey = "secret_key = hello123";
 
 		conn.addRequestHandler(RequestCodes::REGISTER, [&name, &pubKey](Connection* conn, RequestCodes code) {
@@ -39,7 +37,7 @@ int main()
 			return conn->recvResponse();
 		});
 
-		std::string id{"729E2797ABE345BA87E3472C270ADE36"};
+		std::string id{"1834EA5A24AB45D9BFD99A3FE7C5A4C4"};
 		std::string unhex{};
 		boost::algorithm::unhex(id, std::back_inserter(unhex));
 		conn.addRequestHandler(RequestCodes::GET_PUB_KEY, [&unhex](Connection* conn, RequestCodes code) {
@@ -51,7 +49,17 @@ int main()
 			return conn->recvResponse();
 		});
 
-		auto res = conn.dispatch(RequestCodes::USRS_LIST);
+		std::string msgContent = "Hello world !";
+		conn.addRequestHandler(RequestCodes::SEND_MSG, [&unhex, &msgContent](Connection* conn, RequestCodes code) {
+			Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+			code,
+			std::make_unique<SendMessageReqPayload>(unhex, MessageTypes::SEND_TXT, msgContent.size(), msgContent) };
+
+			conn->send(req);
+			return conn->recvResponse();
+		});
+
+		auto res = conn.dispatch(RequestCodes::SEND_MSG);
 		std::cout << res.getPayload().toString() << '\n';
 	}
 	catch (const std::exception& e) {

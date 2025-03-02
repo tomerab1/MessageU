@@ -117,8 +117,8 @@ class SendMessagePayload(ReqPayload):
                 client_id, MessageTypes.code_to_enum(msg_type), content_sz, raw_content
             )
 
-        except Exception:
-            raise InvalidPayloadError()
+        except Exception as e:
+            raise InvalidPayloadError(e)
 
 
 class RequestCodes(Enum):

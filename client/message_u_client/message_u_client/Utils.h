@@ -24,4 +24,9 @@ namespace Utils {
 	uint16_t EnumToUint16(T enumVal) {
 		return static_cast<std::underlying_type_t<T>>(enumVal);
 	}
+
+	template<typename T>
+	uint8_t EnumToUint8(T enumVal) {
+		return static_cast<std::underlying_type_t<T>>(enumVal);
+	}
 }

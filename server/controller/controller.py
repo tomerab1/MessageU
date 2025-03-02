@@ -5,6 +5,9 @@ from proto.request import (
     RequestCodes,
     RegistrationPayload,
     GetPublicKeyPayload,
+    SendMessagePayload,
+    MessageTypes,
+    PollMessagesPayload,
 )
 from services.client_service import ClientService
 from services.message_service import MessagesService
@@ -25,9 +28,11 @@ class Controller:
         self._install_handlers()
 
     def _install_handlers(self):
-        self._hanlders[RequestCodes.REGISTER.value] = self.register
-        self._hanlders[RequestCodes.LIST_USERS.value] = self.list_users
-        self._hanlders[RequestCodes.GET_PUB_KEY.value] = self.get_pub_key
+        self._hanlders[RequestCodes.REGISTER.value] = self._register
+        self._hanlders[RequestCodes.LIST_USERS.value] = self._list_users
+        self._hanlders[RequestCodes.GET_PUB_KEY.value] = self._get_pub_key
+        self._hanlders[RequestCodes.SEND_MSG.value] = self._send_msg
+        self._hanlders[RequestCodes.POLL_MSGS.value] = self._poll_msgs
 
     def dispatch(self, conn, packet):
         try:
@@ -41,7 +46,9 @@ class Controller:
             logger.warning(e)
             conn.send(ResponseFactory.create_response(ResponseCodes.ERROR).to_bytes())
 
-    def register(self, ctx: Context, register_payload: RegistrationPayload) -> Response:
+    def _register(
+        self, ctx: Context, register_payload: RegistrationPayload
+    ) -> Response:
         new_client = self._client_service.create(register_payload)
         print(new_client)
         ctx.write(
@@ -51,7 +58,7 @@ class Controller:
             )
         )
 
-    def list_users(self, ctx: Context, _) -> Response:
+    def _list_users(self, ctx: Context, _) -> Response:
         users_list = self._client_service.find_all()
         print(users_list)
         ctx.write(
@@ -61,7 +68,7 @@ class Controller:
             )
         )
 
-    def get_pub_key(
+    def _get_pub_key(
         self, ctx: Context, get_pub_key_payload: GetPublicKeyPayload
     ) -> Response:
         user = self._client_service.find_by_id(get_pub_key_payload.user_id)
@@ -73,3 +80,31 @@ class Controller:
                 user.get_public_key(),
             )
         )
+
+    def _send_msg(self, ctx: Context, send_msg_payload: SendMessagePayload) -> Response:
+        client_id = ctx.get_req().get_header().client_id
+        msg = self._messages_service.create(client_id, send_msg_payload)
+        print(msg)
+        ctx.write(
+            ResponseFactory.create_response(
+                ResponseCodes.MSG_SENT,
+                msg.get_to_client(),
+                msg.get_uuid(),
+            )
+        )
+
+    def _poll_msgs(self, ctx: Context, _) -> Response:
+        client_id = ctx.get_req().get_header().client_id
+        msgs = self._messages_service.poll_msgs(client_id)
+
+        for msg in msgs:
+            ctx.write(
+                ResponseFactory.create_response(
+                    ResponseCodes.POLL_MSGS,
+                    msg.get_from_client(),
+                    msg.get_uuid(),
+                    msg.get_msg_type(),
+                    len(msg.get_content()),
+                    msg.get_content(),
+                )
+            )

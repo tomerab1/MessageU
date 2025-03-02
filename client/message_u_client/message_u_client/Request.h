@@ -17,7 +17,7 @@ enum class RequestCodes: uint16_t {
 	POLL_MSGS = 604,
 };
 
-enum class MessageTypes : uint16_t {
+enum class MessageTypes : uint8_t {
 	GET_SYM_KEY = 1,
 	SEND_SYM_KEY = 2,
 	SEND_TXT = 3,

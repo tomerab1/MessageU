@@ -30,7 +30,7 @@ public:
 
 private:
 	header_t readHeader();
-	bytes_t readPayload(header_t header);
+	bytes_t readPayload(const header_t& header);
 	size_t recv(bytes_t& outBytes, size_t recvSz);
 
 private:

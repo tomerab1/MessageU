@@ -10,8 +10,8 @@ class ClientService:
         self._client_repo = repo
 
     def find_by_id(self, uuid) -> ClientEntity:
-        (client, *_) = self._client_repo.find_one(
-            filter_cb=lambda record: uuid == record[1].get_uuid()
+        (client, *_) = self._client_repo.find(
+            filter_cb=lambda record: uuid == record[0]
         ).values()
 
         return client
@@ -20,7 +20,7 @@ class ClientService:
         return self._client_repo.find_all()
 
     def create(self, payload: RegistrationPayload):
-        if self._client_repo.find_one(
+        if self._client_repo.find(
             filter_cb=lambda record: payload.username == record[1].get_username()
         ):
             raise UniqueKeyViolationException(
@@ -28,5 +28,5 @@ class ClientService:
             )
 
         user = ClientEntity(uuid.uuid4().bytes, payload.username, payload.public_key)
-        self._client_repo.save(user)
+        self._client_repo.save(user.get_uuid(), user)
         return user

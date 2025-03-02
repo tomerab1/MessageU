@@ -7,11 +7,11 @@ class Repository(ABC):
         pass
 
     @abstractmethod
-    def find_one(self, filter_cb):
+    def find(self, filter_cb):
         pass
 
     @abstractmethod
-    def save(self, obj):
+    def save(self, id, obj):
         pass
 
     # @abstractmethod

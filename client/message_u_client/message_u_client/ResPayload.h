@@ -5,6 +5,7 @@
 #include <string>
 
 enum class ResponseCodes : uint16_t;
+enum class MessageTypes : uint8_t;
 
 class ResPayload {
 public:
@@ -63,8 +64,21 @@ private:
 	PublicKeyEntry  m_entry;
 };
 
-class MessageSentPayload : public ResPayload {};
+class MessageSentResPayload : public ResPayload {
+public:
+	MessageSentResPayload(const bytes_t& bytes);
 
-class PollMessagePayload : public ResPayload {};
+	struct MsgEntry {
+		std::string targetId;
+		uint32_t msgId;
+	};
+
+	std::string toString() const override;
+
+private:
+	MsgEntry m_entry;
+};
+
+class PollMessageResPayload : public ResPayload {};
 
 class ErrorPayload : public ResPayload {};

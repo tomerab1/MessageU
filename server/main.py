@@ -51,6 +51,7 @@ class MessageUServer:
 
     def _read(self, conn, mask):
         try:
+            # split to recv header and then recv the payload
             data = conn.recv(1024)
             if data:
                 self._controller.dispatch(conn, data)

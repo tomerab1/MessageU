@@ -27,7 +27,7 @@ Connection::header_t Connection::readHeader()
 	return Response::Header::fromBytes(headerBytes);
 }
 
-Connection::bytes_t Connection::readPayload(header_t header)
+Connection::bytes_t Connection::readPayload(const header_t& header)
 {
 	std::vector<uint8_t> payloadBytes(header.payloadSz, 0);
 	recv(payloadBytes, header.payloadSz);
@@ -43,7 +43,7 @@ void Connection::send(Request& req)
 Response Connection::recvResponse()
 {
 	auto header = readHeader();
-	auto payloadBytes = readPayload(std::move(header));
+	auto payloadBytes = readPayload(header);
 	return Response(header, payloadBytes);
 }
 

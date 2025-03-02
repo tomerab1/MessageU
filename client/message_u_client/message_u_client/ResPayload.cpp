@@ -1,5 +1,6 @@
 #include "ResPayload.h"
 #include "Response.h"
+#include "Request.h"
 #include "Utils.h"
 #include "Config.h"
 
@@ -19,7 +20,7 @@ ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes 
 	case ResponseCodes::PUB_KEY:
 		return std::make_unique<PublicKeyResPayload>(bytes);
 	case ResponseCodes::MSG_SEND:
-		break;
+		return std::make_unique<MessageSentResPayload>(bytes);
 	case ResponseCodes::POLL_MSGS:
 		break;
 	case ResponseCodes::ERR: 
@@ -123,4 +124,22 @@ std::string PublicKeyResPayload::toString() const
 const PublicKeyResPayload::PublicKeyEntry& PublicKeyResPayload::getPubKeyEntry() const
 {
 	return m_entry;
+}
+
+MessageSentResPayload::MessageSentResPayload(const bytes_t& bytes)
+{
+	m_entry.targetId.resize(Config::CLIENT_ID_SZ);
+	std::copy(bytes.begin(), bytes.begin() + Config::CLIENT_ID_SZ, m_entry.targetId.begin());
+	
+	size_t offset{ Config::CLIENT_ID_SZ };
+	m_entry.msgId = Utils::deserializeTrivialType<uint32_t>(bytes, offset);
+}
+
+std::string MessageSentResPayload::toString() const
+{
+	std::stringstream ss;
+
+	ss << boost::algorithm::hex(m_entry.targetId) << '\t' << m_entry.msgId;
+
+	return ss.str();
 }
