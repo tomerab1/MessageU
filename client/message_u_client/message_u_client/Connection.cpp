@@ -10,14 +10,14 @@ Connection::Connection(io_ctx_t& ctx, const std::string& addr, const std::string
 	boost::asio::connect(m_socket, m_resolver.resolve(addr, port));
 }
 
-void Connection::addRequestHandler(RequestCodes code, std::function<Response(Connection*, RequestCodes)> handler)
+void Connection::addRequestHandler(RequestCodes code, std::function<Response(Connection&, RequestCodes)> handler)
 {
 	m_handlerMap.insert({ Utils::EnumToUint16(code), handler });
 }
 
 Response Connection::dispatch(RequestCodes code)
 {
-	return m_handlerMap[Utils::EnumToUint16(code)](this, code);
+	return m_handlerMap[Utils::EnumToUint16(code)](*this, code);
 }
 
 Connection::header_t Connection::readHeader()

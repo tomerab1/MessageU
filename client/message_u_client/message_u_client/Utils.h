@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <string>
 #include <boost/endian/conversion.hpp>
 
 namespace Utils {
@@ -29,4 +30,7 @@ namespace Utils {
 	uint8_t EnumToUint8(T enumVal) {
 		return static_cast<std::underlying_type_t<T>>(enumVal);
 	}
+
+	int32_t strToInt(std::string& str);
+	void trimStr(std::string& str);
 }
