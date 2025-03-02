@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from config.config import Config
 from proto.request import MessageTypes
+from entities.message_entity import MessageEntity
 from exceptions.exceptions import InvalidPayloadResponseError, InvalidUUID
 from enum import Enum
 import struct
@@ -102,27 +103,30 @@ class PollMessagePayload(ResPayload):
     _RES_FMT = "!16sIBI"
     _FMT_SZ = struct.calcsize(_RES_FMT)
 
-    def __init__(self, client_id, msg_id, msg_type: MessageTypes, msg_sz, content):
+    def __init__(self, msgs: list[MessageEntity]):
         super().__init__()
-        self._client_id = client_id
-        self._msg_id = msg_id
-        self._msg_type = msg_type
-        self._msg_sz = msg_sz
-        self._content = content
+        self._msgs = msgs
 
     def size(self):
-        return PollMessagePayload._FMT_SZ + len(
-            self._content.encode("utf-8").ljust(self._msg_sz, b"\x00")
+        return len(self._msgs) * PollMessagePayload._FMT_SZ + sum(
+            len(msg.get_content()) for msg in self._msgs
         )
 
     def to_bytes(self):
-        return struct.pack(
-            PollMessagePayload._RES_FMT,
-            self._client_id,
-            self._msg_id,
-            self._msg_type.value,
-            self._msg_sz,
-        ) + self._content.encode("utf-8").ljust(self._msg_sz, b"\x00")
+        to_send = b""
+        for msg in self._msgs:
+            to_send += (
+                struct.pack(
+                    PollMessagePayload._RES_FMT,
+                    msg.get_from_client(),
+                    msg.get_uuid(),
+                    msg.get_msg_type().value,
+                    len(msg.get_content()),
+                )
+                + msg.get_content()
+            )
+
+        return to_send
 
 
 class ErrorResponse(ResPayload):
@@ -197,11 +201,7 @@ class ResponseFactory:
         ResponseCodes.MSG_SENT: lambda dst_client_id, msg_id: MessageSentPayload(
             dst_client_id, msg_id
         ),
-        ResponseCodes.POLL_MSGS: lambda client_id,
-        msg_id,
-        msg_type,
-        msg_sz,
-        content: PollMessagePayload(client_id, msg_id, msg_type, msg_sz, content),
+        ResponseCodes.POLL_MSGS: lambda msgs: PollMessagePayload(msgs),
         ResponseCodes.ERROR: lambda: ErrorResponse(),
     }
 

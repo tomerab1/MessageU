@@ -82,3 +82,13 @@ uint32_t SendMessageReqPayload::getSize()
 {
     return m_msgSz + sizeof(MessageTypes) + Config::CLIENT_ID_SZ + sizeof(m_msgSz);
 }
+
+PollMessagesReqPayload::bytes_t PollMessagesReqPayload::toBytes()
+{
+    return bytes_t();
+}
+
+uint32_t PollMessagesReqPayload::getSize()
+{
+    return 0;
+}

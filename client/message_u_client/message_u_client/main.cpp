@@ -37,7 +37,7 @@ int main()
 			return conn->recvResponse();
 		});
 
-		std::string id{"1834EA5A24AB45D9BFD99A3FE7C5A4C4"};
+		std::string id{"AA4AC6BCCACD4785B544EF2EE7888FDD"};
 		std::string unhex{};
 		boost::algorithm::unhex(id, std::back_inserter(unhex));
 		conn.addRequestHandler(RequestCodes::GET_PUB_KEY, [&unhex](Connection* conn, RequestCodes code) {
@@ -49,7 +49,7 @@ int main()
 			return conn->recvResponse();
 		});
 
-		std::string msgContent = "Hello world !";
+		std::string msgContent = "WHATS UP";
 		conn.addRequestHandler(RequestCodes::SEND_MSG, [&unhex, &msgContent](Connection* conn, RequestCodes code) {
 			Request req{ std::string(Config::CLIENT_ID_SZ, 0),
 			code,
@@ -59,7 +59,16 @@ int main()
 			return conn->recvResponse();
 		});
 
-		auto res = conn.dispatch(RequestCodes::SEND_MSG);
+		conn.addRequestHandler(RequestCodes::POLL_MSGS, [&unhex, &msgContent](Connection* conn, RequestCodes code) {
+			Request req{ unhex,
+			code,
+			std::make_unique<PollMessagesReqPayload>() };
+
+			conn->send(req);
+			return conn->recvResponse();
+		});
+
+		auto res = conn.dispatch(RequestCodes::POLL_MSGS);
 		std::cout << res.getPayload().toString() << '\n';
 	}
 	catch (const std::exception& e) {

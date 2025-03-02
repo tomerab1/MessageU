@@ -96,15 +96,10 @@ class Controller:
     def _poll_msgs(self, ctx: Context, _) -> Response:
         client_id = ctx.get_req().get_header().client_id
         msgs = self._messages_service.poll_msgs(client_id)
-
-        for msg in msgs:
-            ctx.write(
-                ResponseFactory.create_response(
-                    ResponseCodes.POLL_MSGS,
-                    msg.get_from_client(),
-                    msg.get_uuid(),
-                    msg.get_msg_type(),
-                    len(msg.get_content()),
-                    msg.get_content(),
-                )
+        print(msgs)
+        ctx.write(
+            ResponseFactory.create_response(
+                ResponseCodes.POLL_MSGS,
+                msgs,
             )
+        )

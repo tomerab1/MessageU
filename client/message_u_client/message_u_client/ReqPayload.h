@@ -61,6 +61,9 @@ private:
 	std::string m_msg;
 };
 
-class PollMessagesPayload : public ReqPayload {
-
+class PollMessagesReqPayload : public ReqPayload
+{
+public:
+	bytes_t toBytes() override;
+	uint32_t getSize() override;
 };

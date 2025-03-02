@@ -158,7 +158,7 @@ class Request:
     def __init__(self, packet):
         data = struct.unpack(Request._HEADER_FMT, packet[: Request._HEADER_SZ])
         client_id, version, code, payload_size = data
-        self._header = Request.Header(client_id.decode("utf-8"), version, code)
+        self._header = Request.Header(client_id, version, code)
 
         code = RequestCodes.code_to_enum(code)
         payload_cls = Request._PAYLOAD_CLASSES.get(code)

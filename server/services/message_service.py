@@ -24,4 +24,4 @@ class MessagesService:
         msgs = self._messages_repo.find(
             lambda record: client_id == record[1].get_to_client()
         )
-        return msgs
+        return list(msgs.values())

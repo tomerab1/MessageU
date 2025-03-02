@@ -79,6 +79,22 @@ private:
 	MsgEntry m_entry;
 };
 
-class PollMessageResPayload : public ResPayload {};
+class PollMessageResPayload : public ResPayload {
+public:
+	PollMessageResPayload(const bytes_t& bytes);
+
+	struct MessageEntry {
+		std::string senderId;
+		uint32_t msgId;
+		MessageTypes msgType;
+		uint32_t contentSz;
+		std::string content;
+	};
+
+	std::string toString() const override;
+
+private:
+	std::vector<MessageEntry> m_msgs;
+};
 
 class ErrorPayload : public ResPayload {};

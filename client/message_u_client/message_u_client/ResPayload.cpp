@@ -22,7 +22,7 @@ ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes 
 	case ResponseCodes::MSG_SEND:
 		return std::make_unique<MessageSentResPayload>(bytes);
 	case ResponseCodes::POLL_MSGS:
-		break;
+		return std::make_unique<PollMessageResPayload>(bytes);
 	case ResponseCodes::ERR: 
 		break;
 	default:
@@ -140,6 +140,39 @@ std::string MessageSentResPayload::toString() const
 	std::stringstream ss;
 
 	ss << boost::algorithm::hex(m_entry.targetId) << '\t' << m_entry.msgId;
+
+	return ss.str();
+}
+
+PollMessageResPayload::PollMessageResPayload(const bytes_t& bytes)
+{
+	size_t offset{ 0 };
+	while (offset < bytes.size()) {
+		MessageEntry msg;
+		msg.senderId.resize(Config::CLIENT_ID_SZ);
+
+		std::copy(bytes.begin() + offset, bytes.begin() + offset + Config::CLIENT_ID_SZ, msg.senderId.begin());
+		offset += Config::CLIENT_ID_SZ;
+
+		msg.msgId = Utils::deserializeTrivialType<uint32_t>(bytes, offset);
+		msg.msgType = MessageTypes(Utils::deserializeTrivialType<uint8_t>(bytes, offset));
+		msg.contentSz = Utils::deserializeTrivialType<uint32_t>(bytes, offset);
+
+		msg.content.resize(msg.contentSz);
+		std::copy(bytes.begin() + offset, bytes.begin() + offset + msg.contentSz, msg.content.begin());
+		offset += msg.contentSz;
+
+		m_msgs.push_back(msg);
+	}
+}
+
+std::string PollMessageResPayload::toString() const
+{
+	std::stringstream ss;
+	
+	for (size_t i = 0; i < m_msgs.size(); i++) {
+		ss << (i + 1) << ' ' << m_msgs[i].content << "\n\n";
+	}
 
 	return ss.str();
 }

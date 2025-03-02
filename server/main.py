@@ -31,10 +31,9 @@ class MessageUServer:
                 cb(key.fileobj, mask)
 
     def _setup_controller(self):
-        repo = RamRepository()
-
         self._controller = Controller(
-            client_service=ClientService(repo), messages_service=MessagesService(repo)
+            client_service=ClientService(RamRepository()),
+            messages_service=MessagesService(RamRepository()),
         )
 
     def _setup(self):
