@@ -47,20 +47,10 @@ const std::string& RegistrationResPayload::getUUID() const
 	return m_uuid;
 }
 
-void RegistrationResPayload::visit(Visitor& visitor)
+void RegistrationResPayload::accept(Visitor& visitor)
 {
-	visitor.accept(*this);
+	visitor.visit(*this);
 }
-
-std::string RegistrationResPayload::toString() const
-{
-	std::stringstream ss;
-
-	ss << boost::algorithm::hex(getUUID());
-
-	return ss.str();
-}
-
 
 UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 {
@@ -87,20 +77,9 @@ UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 	}
 }
 
-void UsersListResPayload::visit(Visitor& visitor)
+void UsersListResPayload::accept(Visitor& visitor)
 {
-	visitor.accept(*this);
-}
-
-std::string UsersListResPayload::toString() const
-{
-	std::stringstream ss;
-
-	for (const auto& user : getUsers()) {
-		ss << boost::algorithm::hex(user.id) << '\t' << user.name << '\n';
-	}
-
-	return ss.str();
+	visitor.visit(*this);
 }
 
 const std::vector<UsersListResPayload::UserEntry>& UsersListResPayload::getUsers() const
@@ -121,19 +100,9 @@ PublicKeyResPayload::PublicKeyResPayload(const bytes_t& bytes)
 	std::copy(bytes.begin(), bytes.begin() + Config::PUB_KEY_SZ, m_entry.pubKey.begin());
 }
 
-void PublicKeyResPayload::visit(Visitor& visitor)
+void PublicKeyResPayload::accept(Visitor& visitor)
 {
-	visitor.accept(*this);
-}
-
-std::string PublicKeyResPayload::toString() const
-{
-
-	std::stringstream ss;
-
-	ss << boost::algorithm::hex(getPubKeyEntry().id) << '\t' << getPubKeyEntry().pubKey << '\n';
-
-	return ss.str();
+	visitor.visit(*this);
 }
 
 const PublicKeyResPayload::PublicKeyEntry& PublicKeyResPayload::getPubKeyEntry() const
@@ -150,18 +119,14 @@ MessageSentResPayload::MessageSentResPayload(const bytes_t& bytes)
 	m_entry.msgId = Utils::deserializeTrivialType<uint32_t>(bytes, offset);
 }
 
-void MessageSentResPayload::visit(Visitor& visitor)
+const MessageSentResPayload::MsgEntry& MessageSentResPayload::getMessage() const
 {
-	visitor.accept(*this);
+	return m_entry;
 }
 
-std::string MessageSentResPayload::toString() const
+void MessageSentResPayload::accept(Visitor& visitor)
 {
-	std::stringstream ss;
-
-	ss << boost::algorithm::hex(m_entry.targetId) << '\t' << m_entry.msgId;
-
-	return ss.str();
+	visitor.visit(*this);
 }
 
 PollMessageResPayload::PollMessageResPayload(const bytes_t& bytes)
@@ -186,28 +151,57 @@ PollMessageResPayload::PollMessageResPayload(const bytes_t& bytes)
 	}
 }
 
-void PollMessageResPayload::visit(Visitor& visitor)
+const std::vector<PollMessageResPayload::MessageEntry>& PollMessageResPayload::getMessages() const
 {
-	visitor.accept(*this);
+	return m_msgs;
 }
 
-std::string PollMessageResPayload::toString() const
+void PollMessageResPayload::accept(Visitor& visitor)
 {
-	std::stringstream ss;
-	
-	for (size_t i = 0; i < m_msgs.size(); i++) {
-		ss << (i + 1) << ' ' << m_msgs[i].content << "\n\n";
+	visitor.visit(*this);
+}
+
+void ErrorPayload::accept(Visitor& visitor)
+{
+	visitor.visit(*this);
+}
+
+std::string ToStringVisitor::getString()
+{
+	return m_ss.str();
+}
+
+void ToStringVisitor::visit(const RegistrationResPayload& payload)
+{
+	m_ss << boost::algorithm::hex(payload.getUUID());
+}
+
+void ToStringVisitor::visit(const UsersListResPayload& payload)
+{
+	for (const auto& user : payload.getUsers()) {
+		m_ss << boost::algorithm::hex(user.id) << '\t' << user.name << '\n';
 	}
-
-	return ss.str();
 }
 
-void ErrorPayload::visit(Visitor& visitor)
+void ToStringVisitor::visit(const PublicKeyResPayload& payload)
 {
-	visitor.accept(*this);
+	m_ss << boost::algorithm::hex(payload.getPubKeyEntry().id) << '\t' << payload.getPubKeyEntry().pubKey << '\n';
 }
 
-std::string ErrorPayload::toString() const
+void ToStringVisitor::visit(const MessageSentResPayload& payload)
 {
-	return "Server responded with a generic error";
+	m_ss << boost::algorithm::hex(payload.getMessage().targetId) << '\t' << payload.getMessage().msgId;
+}
+
+void ToStringVisitor::visit(const PollMessageResPayload& payload)
+{
+	auto messages = payload.getMessages();
+	for (size_t i = 0; i < messages.size(); i++) {
+		m_ss << (i + 1) << ' ' << messages[i].content << "\n\n";
+	}
+}
+
+void ToStringVisitor::visit(const ErrorPayload& payload)
+{
+	m_ss << std::string("Server responded with a generic error");
 }

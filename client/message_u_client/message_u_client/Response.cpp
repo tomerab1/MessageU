@@ -19,12 +19,12 @@ Response::Response(const Header& header, const bytes_t& payloadBytes)
     m_payload = ResPayload::fromBytes(payloadBytes, m_header.code);
 }
 
-const Response::Header& Response::getHeader()
+Response::Header& Response::getHeader()
 {
     return m_header;
 }
 
-const ResPayload& Response::getPayload()
+ResPayload& Response::getPayload()
 {
     return *m_payload;
 }

@@ -30,8 +30,8 @@ public:
 
 	Response(const Header& header, const bytes_t& payloadBytes);
 
-	const Header& getHeader();
-	const ResPayload& getPayload();
+	Header& getHeader();
+	ResPayload& getPayload();
 
 	~Response();
 

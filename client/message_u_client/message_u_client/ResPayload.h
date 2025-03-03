@@ -3,8 +3,10 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <sstream>
 
 class Visitor;
+class ClientState;
 
 enum class ResponseCodes : uint16_t;
 enum class MessageTypes : uint8_t;
@@ -16,9 +18,7 @@ public:
 
 	static payload_t fromBytes(const bytes_t& bytes, ResponseCodes code);
 
-	virtual void visit(Visitor& visitor) = 0;
-	virtual std::string toString() const = 0;
-
+	virtual void accept(Visitor& visitor) = 0;
 	virtual ~ResPayload() = default;
 };
 
@@ -26,8 +26,7 @@ class RegistrationResPayload : public ResPayload {
 public:
 	RegistrationResPayload(const bytes_t& bytes);
 
-	void visit(Visitor& visitor) override;
-	std::string toString() const override;
+	void accept(Visitor& visitor) override;
 	const std::string& getUUID() const;
 
 	~RegistrationResPayload() = default;
@@ -45,8 +44,7 @@ public:
 		std::string name;
 	};
 
-	void visit(Visitor& visitor) override;
-	std::string toString() const override;
+	void accept(Visitor& visitor) override;
 	const std::vector<UserEntry>& getUsers() const;
 
 private:
@@ -62,8 +60,7 @@ public:
 		std::string pubKey;
 	};
 
-	void visit(Visitor& visitor) override;
-	std::string toString() const override;
+	void accept(Visitor& visitor) override;
 	const PublicKeyEntry& getPubKeyEntry() const;
 
 private:
@@ -79,8 +76,8 @@ public:
 		uint32_t msgId;
 	};
 
-	void visit(Visitor& visitor) override;
-	std::string toString() const override;
+	const MsgEntry& getMessage() const;
+	void accept(Visitor& visitor) override;
 
 private:
 	MsgEntry m_entry;
@@ -98,8 +95,8 @@ public:
 		std::string content;
 	};
 
-	void visit(Visitor& visitor) override;
-	std::string toString() const override;
+	const std::vector<MessageEntry>& getMessages() const;
+	void accept(Visitor& visitor) override;
 
 private:
 	std::vector<MessageEntry> m_msgs;
@@ -107,25 +104,46 @@ private:
 
 class ErrorPayload : public ResPayload {
 public:
-	void visit(Visitor& visitor) override;
-	std::string toString() const override;
+	void accept(Visitor& visitor) override;
 };
 
 class Visitor 
 {
 public:
-	virtual void accept(const RegistrationResPayload& payload) = 0;
-	virtual void accept(const UsersListResPayload& payload) = 0;
-	virtual void accept(const PublicKeyResPayload& payload) = 0;
-	virtual void accept(const MessageSentResPayload& payload) = 0;
-	virtual void accept(const PollMessageResPayload& payload) = 0;
-	virtual void accept(const ErrorPayload& payload) = 0;
+	virtual void visit(const RegistrationResPayload& payload) = 0;
+	virtual void visit(const UsersListResPayload& payload) = 0;
+	virtual void visit(const PublicKeyResPayload& payload) = 0;
+	virtual void visit(const MessageSentResPayload& payload) = 0;
+	virtual void visit(const PollMessageResPayload& payload) = 0;
+	virtual void visit(const ErrorPayload& payload) = 0;
 };
 
 class ToStringVisitor : public Visitor {
 public:
+	std::string getString();
+
+	void visit(const RegistrationResPayload& payload) override;
+	void visit(const UsersListResPayload& payload) override;
+	void visit(const PublicKeyResPayload& payload) override;
+	void visit(const MessageSentResPayload& payload) override;
+	void visit(const PollMessageResPayload& payload) override;
+	void visit(const ErrorPayload& payload) override;
+
+private:
+	std::stringstream m_ss;
 };
 
 class ClientStateVisitor : public Visitor {
 public:
+	explicit ClientStateVisitor(ClientState& state);
+
+	void visit(const RegistrationResPayload& payload) override;
+	void visit(const UsersListResPayload& payload) override;
+	void visit(const PublicKeyResPayload& payload) override;
+	void visit(const MessageSentResPayload& payload) override;
+	void visit(const PollMessageResPayload& payload) override;
+	void visit(const ErrorPayload& payload) override;
+
+private:
+	ClientState& m_state;
 };

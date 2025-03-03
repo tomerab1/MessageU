@@ -72,6 +72,7 @@ public:
 private:
 	CLI& getCLI();
 	Connection& getConn();
+	ClientState& getState();
 
 	void setupCliHandlers();
 

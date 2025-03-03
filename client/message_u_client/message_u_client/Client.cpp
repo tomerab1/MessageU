@@ -53,30 +53,34 @@ void Client::onCliRegister()
 	getConn().send(req);
 	auto res = getConn().recvResponse();
 
-	if (res.getHeader().code == ResponseCodes::REG_OK) {
-		auto uuid = res.getPayload().toString();
+	auto payloadVisitor = std::make_unique<ToStringVisitor>();
+	res.getPayload().accept(*payloadVisitor);
 
-		m_state.setUsername(username);
-		m_state.setPubKey(pubKey);
-		m_state.setUUID(uuid);
-		m_state.saveToFile(Config::ME_DOT_INFO_PATH, username, uuid, pubKey);
+	if (res.getHeader().code == ResponseCodes::REG_OK) {
+		auto uuid = payloadVisitor->getString();
+		std::cout << "UUID=" << uuid << '\n';
+
+		getState().setUsername(username);
+		getState().setPubKey(pubKey);
+		getState().setUUID(uuid);
+		getState().saveToFile(Config::ME_DOT_INFO_PATH, username, uuid, pubKey);
 
 		setupCliHandlers();
 	} else {
-		std::cout << res.getPayload().toString() << "\n\n";
+		std::cout << payloadVisitor->getString() << "\n\n";
 	}
 }
 
 void Client::onCliReqClientList()
 {
-	Request req{ m_state.getUUID(),
-		RequestCodes::USRS_LIST,
-		std::make_unique<UsersListReqPayload>() };
+	//Request req{ m_state.getUUID(),
+	//	RequestCodes::USRS_LIST,
+	//	std::make_unique<UsersListReqPayload>() };
 
-	getConn().send(req);
-	auto res = getConn().recvResponse();
+	//getConn().send(req);
+	//auto res = getConn().recvResponse();
 
-	std::cout << res.getPayload().toString() << '\n';
+	//std::cout << res.getPayload().toString() << '\n';
 }
 
 void Client::onCliReqPubKey()
@@ -91,28 +95,28 @@ void Client::onCliReqPubKey()
 
 void Client::onCliReqPendingMsgs()
 {
-	Request req{ m_state.getUUID(),
-	RequestCodes::POLL_MSGS,
-	std::make_unique<PollMessagesReqPayload>() };
+	//Request req{ m_state.getUUID(),
+	//RequestCodes::POLL_MSGS,
+	//std::make_unique<PollMessagesReqPayload>() };
 
-	getConn().send(req);
-	auto res = getConn().recvResponse();
+	//getConn().send(req);
+	//auto res = getConn().recvResponse();
 
-	std::cout << res.getPayload().toString() << '\n';
+	//std::cout << res.getPayload().toString() << '\n';
 }
 
 void Client::onCliSendTextMsg()
 {
-	auto msgContent = getCLI().input("Enter your message: ");
+	//auto msgContent = getCLI().input("Enter your message: ");
 
-	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-			RequestCodes::SEND_MSG,
-			std::make_unique<SendMessageReqPayload>("", MessageTypes::SEND_TXT, msgContent.size(), msgContent)};
+	//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+	//		RequestCodes::SEND_MSG,
+	//		std::make_unique<SendMessageReqPayload>("", MessageTypes::SEND_TXT, msgContent.size(), msgContent)};
 
-	getConn().send(req);
-	auto res = getConn().recvResponse();
+	//getConn().send(req);
+	//auto res = getConn().recvResponse();
 
-	std::cout << res.getPayload().toString() << '\n';
+	//std::cout << res.getPayload().toString() << '\n';
 }
 
 void Client::onCliReqSymKey()
@@ -147,6 +151,11 @@ CLI& Client::getCLI()
 Connection& Client::getConn()
 {
 	return *m_conn;
+}
+
+ClientState& Client::getState()
+{
+	return m_state;
 }
 
 Client::~Client() = default;
