@@ -22,6 +22,7 @@ public:
 	struct OtherClientEntry;
 	using store_t = std::unordered_map<ClientStateKeys, std::string>;
 	using clients_map_t = std::unordered_map<std::string, OtherClientEntry>;
+	using rev_index_t = std::unordered_map<std::string, std::string>;
 
 	struct OtherClientEntry {
 		std::string uuid;
@@ -33,7 +34,8 @@ public:
 	void loadFromFile(const std::filesystem::path& path);
 	void saveToFile(const std::filesystem::path& path, const std::string& username, const std::string& uuid, const std::string& privKey);
 	bool isInitialized();
-	void addOtherClient(const std::string& name, const std::string& uuid);
+	std::string getNameByUUID(const std::string& uuid);
+	void addClient(const std::string& name, const std::string& uuid);
 
 	void setUsername(const std::string& username);
 	void setUUID(const std::string& uuid);
@@ -53,6 +55,8 @@ public:
 private:
 	store_t m_store;
 	clients_map_t m_nameToClient;
+	rev_index_t m_uuidToName;
+
 	bool m_isInitialized{ false };
 };
 

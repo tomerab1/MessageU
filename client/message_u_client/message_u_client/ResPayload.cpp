@@ -1,6 +1,7 @@
 #include "ResPayload.h"
 #include "Response.h"
 #include "Request.h"
+#include "Client.h"
 #include "Utils.h"
 #include "Config.h"
 
@@ -204,4 +205,43 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 void ToStringVisitor::visit(const ErrorPayload& payload)
 {
 	m_ss << std::string("Server responded with a generic error");
+}
+
+ClientStateVisitor::ClientStateVisitor(ClientState& state)
+	: m_state{state}
+{
+}
+
+void ClientStateVisitor::visit(const UsersListResPayload& payload)
+{
+	for (const auto& entry : payload.getUsers()) {
+		m_state.addClient(entry.id, entry.name);
+	}
+}
+
+void ClientStateVisitor::visit(const PublicKeyResPayload& payload)
+{
+	auto entry = payload.getPubKeyEntry();
+	auto name = m_state.getNameByUUID(entry.id);
+	m_state.setPubKey(name, entry.pubKey);
+}
+
+void ClientStateVisitor::visit(const RegistrationResPayload& payload)
+{
+	throw std::logic_error("Error: Unreachable");
+}
+
+void ClientStateVisitor::visit(const MessageSentResPayload& payload)
+{
+	throw std::logic_error("Error: Unreachable");
+}
+
+void ClientStateVisitor::visit(const PollMessageResPayload& payload)
+{
+	throw std::logic_error("Error: Unreachable");
+}
+
+void ClientStateVisitor::visit(const ErrorPayload& payload)
+{
+	throw std::logic_error("Error: Unreachable");
 }

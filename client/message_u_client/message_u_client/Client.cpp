@@ -15,8 +15,8 @@ Client::Client(context_t& ctx, const std::string& addr, const std::string& port)
 	m_state{Config::ME_DOT_INFO_PATH}
 {
 	if (!m_state.isInitialized()) {
-		m_cli->addHandler(CLIMenuOpts::REGISTER, "Register", std::bind(&Client::onCliRegister, this));
-		m_cli->addHandler(CLIMenuOpts::EXIT, "Exit client", []() {});
+		getCLI().addHandler(CLIMenuOpts::REGISTER, "Register", std::bind(&Client::onCliRegister, this));
+		getCLI().addHandler(CLIMenuOpts::EXIT, "Exit client", []() {});
 	}
 	else {
 		setupCliHandlers();
@@ -31,14 +31,14 @@ void Client::run()
 void Client::setupCliHandlers()
 {
 	// Binding the cli events to their handlers.
-	m_cli->addHandler(CLIMenuOpts::REGISTER, "Register", std::bind(&Client::onCliRegister, this));
-	m_cli->addHandler(CLIMenuOpts::REQ_CLIENT_LIST, "Request for clients list", std::bind(&Client::onCliReqClientList, this));
-	m_cli->addHandler(CLIMenuOpts::REQ_PUB_KEY, "Request for public key", std::bind(&Client::onCliReqPubKey, this));
-	m_cli->addHandler(CLIMenuOpts::REQ_PENDING_MSGS, "Request for waiting messages", std::bind(&Client::onCliReqPendingMsgs, this));
-	m_cli->addHandler(CLIMenuOpts::SEND_TEXT, "Send a text message", std::bind(&Client::onCliSendTextMsg, this));
-	m_cli->addHandler(CLIMenuOpts::REQ_SYM_KEY, "Send a request for symmetric key", std::bind(&Client::onCliReqSymKey, this));
-	m_cli->addHandler(CLIMenuOpts::SEND_SYM_KEY, "Send your symmetric key", std::bind(&Client::onCliSendSymKey, this));
-	m_cli->addHandler(CLIMenuOpts::EXIT, "Exit client", []() {});
+	getCLI().addHandler(CLIMenuOpts::REGISTER, "Register", std::bind(&Client::onCliRegister, this));
+	getCLI().addHandler(CLIMenuOpts::REQ_CLIENT_LIST, "Request for clients list", std::bind(&Client::onCliReqClientList, this));
+	getCLI().addHandler(CLIMenuOpts::REQ_PUB_KEY, "Request for public key", std::bind(&Client::onCliReqPubKey, this));
+	getCLI().addHandler(CLIMenuOpts::REQ_PENDING_MSGS, "Request for waiting messages", std::bind(&Client::onCliReqPendingMsgs, this));
+	getCLI().addHandler(CLIMenuOpts::SEND_TEXT, "Send a text message", std::bind(&Client::onCliSendTextMsg, this));
+	getCLI().addHandler(CLIMenuOpts::REQ_SYM_KEY, "Send a request for symmetric key", std::bind(&Client::onCliReqSymKey, this));
+	getCLI().addHandler(CLIMenuOpts::SEND_SYM_KEY, "Send your symmetric key", std::bind(&Client::onCliSendSymKey, this));
+	getCLI().addHandler(CLIMenuOpts::EXIT, "Exit client", []() {});
 }
 
 void Client::onCliRegister()
@@ -46,7 +46,7 @@ void Client::onCliRegister()
 	auto username = getCLI().input("Enter a username: ");
 	std::string pubKey = "secret_key = hello123";
 
-	Request req{ m_state.getUUID(),
+	Request req{ getState().getUUID(),
 		RequestCodes::REGISTER,
 		std::make_unique<RegisterReqPayload>(username, pubKey) };
 
@@ -210,7 +210,17 @@ bool ClientState::isInitialized()
 	return m_isInitialized;
 }
 
-void ClientState::addOtherClient(const std::string& name, const std::string& uuid)
+std::string ClientState::getNameByUUID(const std::string& uuid)
+{
+	auto iter = m_uuidToName.find(uuid);
+	if (iter == m_uuidToName.end()) {
+		throw std::runtime_error("Error: Can't find user with uuid='" + uuid + "'");
+	}
+
+	return iter->second;
+}
+
+void ClientState::addClient(const std::string& name, const std::string& uuid)
 {
 	if (m_nameToClient.find(name) != m_nameToClient.end()) {
 		return;
@@ -219,7 +229,8 @@ void ClientState::addOtherClient(const std::string& name, const std::string& uui
 	OtherClientEntry other;
 	other.uuid = uuid;
 
-	m_nameToClient.insert({ name, OtherClientEntry {} });
+	m_nameToClient.insert({ name, other });
+	m_uuidToName.insert({ other.uuid, name });
 }
 
 void ClientState::setUsername(const std::string& username)
@@ -265,9 +276,7 @@ const std::string& ClientState::getUUID()
 {
 	if (m_store.find(ClientStateKeys::UUID) == m_store.end()) {
 		// Return an empty uuid (for first time before registration).
-		std::string emptyUUID;
-		emptyUUID.resize(0);
-		return emptyUUID;
+		return std::string();
 	}
 
 	return m_store[ClientStateKeys::UUID];
