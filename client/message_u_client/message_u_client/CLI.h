@@ -20,7 +20,7 @@ class CLI
 {
 public:
 	struct CLIOpt;
-	using handler_t = std::function<void(CLI&)>;
+	using handler_t = std::function<void()>;
 	using handler_map_t = std::map<uint16_t, CLIOpt>;
 
 	CLI(const std::string& header, const std::string& footer);
@@ -33,7 +33,7 @@ public:
 		handler_t handler;
 	};
 
-	void addHandler(CLIMenuOpts opt, const std::string& msg, std::function<void(CLI&)> handler);
+	void addHandler(CLIMenuOpts opt, const std::string& msg, handler_t handler);
 	void clearScreen();
 	std::string input(const std::string& prompt="");
 	void run();

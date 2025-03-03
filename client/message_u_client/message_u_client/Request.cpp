@@ -14,7 +14,7 @@ Request::bytes_t Request::Header::toBytes()
 	size_t offset{ 0 };
 	
 	std::copy(id.begin(), id.end(), bytes.begin());
-	offset += id.size();
+	offset += Config::CLIENT_ID_SZ;
 
 	Utils::serializeTrivialType(bytes, offset, version);
 	Utils::serializeTrivialType(bytes, offset, Utils::EnumToUint16(code));

@@ -52,7 +52,7 @@ public:
 
 private:
 	store_t m_store;
-	clients_map_t m_nameToUUID;
+	clients_map_t m_nameToClient;
 	bool m_isInitialized{ false };
 };
 
@@ -79,7 +79,7 @@ private:
 	void onCliReqClientList();
 	void onCliReqPubKey();
 	void onCliReqPendingMsgs();
-	void onCliSetTextMsg();
+	void onCliSendTextMsg();
 	void onCliReqSymKey();
 	void onCliSendSymKey();
 

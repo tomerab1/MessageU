@@ -33,7 +33,7 @@ void CLI::run()
 void CLI::invoke(CLIMenuOpts opt)
 {
 	auto optCode = Utils::EnumToUint16(opt);
-	m_handlers[optCode].handler(*this);
+	m_handlers[optCode].handler();
 }
 
 void CLI::displayMenu()
@@ -47,8 +47,12 @@ void CLI::displayMenu()
 	std::cout << m_footer << '\n';
 }
 
-void CLI::addHandler(CLIMenuOpts opt, const std::string& msg, std::function<void(CLI&)> handler)
+void CLI::addHandler(CLIMenuOpts opt, const std::string& msg, handler_t handler)
 {
+	if (m_handlers.find(Utils::EnumToUint16(opt)) != m_handlers.end()) {
+		return;
+	}
+
 	m_handlers.insert({ Utils::EnumToUint16(opt), CLIOpt {msg, handler} });
 }
 

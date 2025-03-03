@@ -11,26 +11,34 @@
 
 Client::Client(context_t& ctx, const std::string& addr, const std::string& port)
 	: m_cli{ std::make_unique<CLI>("MessageU client at your service", "?") },
-	m_conn{ std::make_unique<Connection>(ctx, addr, port)}
+	m_conn{ std::make_unique<Connection>(ctx, addr, port)},
+	m_state{Config::ME_DOT_INFO_PATH}
 {
-	setupCliHandlers();
+	if (!m_state.isInitialized()) {
+		m_cli->addHandler(CLIMenuOpts::REGISTER, "Register", std::bind(&Client::onCliRegister, this));
+		m_cli->addHandler(CLIMenuOpts::EXIT, "Exit client", []() {});
+	}
+	else {
+		setupCliHandlers();
+	}
 }
 
 void Client::run()
 {
-	m_cli->run();
+	getCLI().run();
 }
 
 void Client::setupCliHandlers()
 {
+	// Binding the cli events to their handlers.
 	m_cli->addHandler(CLIMenuOpts::REGISTER, "Register", std::bind(&Client::onCliRegister, this));
 	m_cli->addHandler(CLIMenuOpts::REQ_CLIENT_LIST, "Request for clients list", std::bind(&Client::onCliReqClientList, this));
 	m_cli->addHandler(CLIMenuOpts::REQ_PUB_KEY, "Request for public key", std::bind(&Client::onCliReqPubKey, this));
 	m_cli->addHandler(CLIMenuOpts::REQ_PENDING_MSGS, "Request for waiting messages", std::bind(&Client::onCliReqPendingMsgs, this));
-	m_cli->addHandler(CLIMenuOpts::SEND_TEXT, "Send a text message", std::bind(&Client::onCliSetTextMsg, this));
+	m_cli->addHandler(CLIMenuOpts::SEND_TEXT, "Send a text message", std::bind(&Client::onCliSendTextMsg, this));
 	m_cli->addHandler(CLIMenuOpts::REQ_SYM_KEY, "Send a request for symmetric key", std::bind(&Client::onCliReqSymKey, this));
 	m_cli->addHandler(CLIMenuOpts::SEND_SYM_KEY, "Send your symmetric key", std::bind(&Client::onCliSendSymKey, this));
-	m_cli->addHandler(CLIMenuOpts::EXIT, "Exit client", [](CLI& cli) {});
+	m_cli->addHandler(CLIMenuOpts::EXIT, "Exit client", []() {});
 }
 
 void Client::onCliRegister()
@@ -38,19 +46,30 @@ void Client::onCliRegister()
 	auto username = getCLI().input("Enter a username: ");
 	std::string pubKey = "secret_key = hello123";
 
-	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+	Request req{ m_state.getUUID(),
 		RequestCodes::REGISTER,
 		std::make_unique<RegisterReqPayload>(username, pubKey) };
 
 	getConn().send(req);
 	auto res = getConn().recvResponse();
 
-	std::cout << res.getPayload().toString() << '\n';
+	if (res.getHeader().code == ResponseCodes::REG_OK) {
+		auto uuid = res.getPayload().toString();
+
+		m_state.setUsername(username);
+		m_state.setPubKey(pubKey);
+		m_state.setUUID(uuid);
+		m_state.saveToFile(Config::ME_DOT_INFO_PATH, username, uuid, pubKey);
+
+		setupCliHandlers();
+	} else {
+		std::cout << res.getPayload().toString() << "\n\n";
+	}
 }
 
 void Client::onCliReqClientList()
 {
-	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+	Request req{ m_state.getUUID(),
 		RequestCodes::USRS_LIST,
 		std::make_unique<UsersListReqPayload>() };
 
@@ -62,19 +81,17 @@ void Client::onCliReqClientList()
 
 void Client::onCliReqPubKey()
 {
-	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-	RequestCodes::GET_PUB_KEY,
-	std::make_unique<GetPublicKeyReqPayload>() };
+	//Request req{ std::string(Config::CLIENT_ID_SZ, 0), RequestCodes::GET_PUB_KEY, std::make_unique<GetPublicKeyReqPayload>() };
 
-	getConn().send(req);
-	auto res = getConn().recvResponse();
+	//getConn().send(req);
+	//auto res = getConn().recvResponse();
 
-	std::cout << res.getPayload().toString() << '\n';
+	//std::cout << res.getPayload().toString() << '\n';
 }
 
 void Client::onCliReqPendingMsgs()
 {
-	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+	Request req{ m_state.getUUID(),
 	RequestCodes::POLL_MSGS,
 	std::make_unique<PollMessagesReqPayload>() };
 
@@ -84,7 +101,7 @@ void Client::onCliReqPendingMsgs()
 	std::cout << res.getPayload().toString() << '\n';
 }
 
-void Client::onCliSetTextMsg()
+void Client::onCliSendTextMsg()
 {
 	auto msgContent = getCLI().input("Enter your message: ");
 
@@ -100,26 +117,26 @@ void Client::onCliSetTextMsg()
 
 void Client::onCliReqSymKey()
 {
-	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-			RequestCodes::SEND_MSG,
-			std::make_unique<SendMessageReqPayload>("", MessageTypes::GET_SYM_KEY) };
+	//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+	//		RequestCodes::SEND_MSG,
+	//		std::make_unique<SendMessageReqPayload>("", MessageTypes::GET_SYM_KEY) };
 
-	getConn().send(req);
-	auto res = getConn().recvResponse();
+	//getConn().send(req);
+	//auto res = getConn().recvResponse();
 
-	std::cout << res.getPayload().toString() << '\n';
+	//std::cout << res.getPayload().toString() << '\n';
 }
 
 void Client::onCliSendSymKey()
 {
-	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-			RequestCodes::SEND_MSG,
-			std::make_unique<SendMessageReqPayload>("", MessageTypes::SEND_SYM_KEY) };
+	//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+	//		RequestCodes::SEND_MSG,
+	//		std::make_unique<SendMessageReqPayload>("", MessageTypes::SEND_SYM_KEY) };
 
-	getConn().send(req);
-	auto res = getConn().recvResponse();
+	//getConn().send(req);
+	//auto res = getConn().recvResponse();
 
-	std::cout << res.getPayload().toString() << '\n';
+	//std::cout << res.getPayload().toString() << '\n';
 }
 
 CLI& Client::getCLI()
@@ -237,6 +254,13 @@ const std::string& ClientState::getUsername()
 
 const std::string& ClientState::getUUID()
 {
+	if (m_store.find(ClientStateKeys::UUID) == m_store.end()) {
+		// Return an empty uuid (for first time before registration).
+		std::string emptyUUID;
+		emptyUUID.resize(0);
+		return emptyUUID;
+	}
+
 	return m_store[ClientStateKeys::UUID];
 }
 
