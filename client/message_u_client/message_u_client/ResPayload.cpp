@@ -47,6 +47,11 @@ const std::string& RegistrationResPayload::getUUID() const
 	return m_uuid;
 }
 
+void RegistrationResPayload::visit(Visitor& visitor)
+{
+	visitor.accept(*this);
+}
+
 std::string RegistrationResPayload::toString() const
 {
 	std::stringstream ss;
@@ -82,6 +87,11 @@ UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 	}
 }
 
+void UsersListResPayload::visit(Visitor& visitor)
+{
+	visitor.accept(*this);
+}
+
 std::string UsersListResPayload::toString() const
 {
 	std::stringstream ss;
@@ -111,6 +121,11 @@ PublicKeyResPayload::PublicKeyResPayload(const bytes_t& bytes)
 	std::copy(bytes.begin(), bytes.begin() + Config::PUB_KEY_SZ, m_entry.pubKey.begin());
 }
 
+void PublicKeyResPayload::visit(Visitor& visitor)
+{
+	visitor.accept(*this);
+}
+
 std::string PublicKeyResPayload::toString() const
 {
 
@@ -133,6 +148,11 @@ MessageSentResPayload::MessageSentResPayload(const bytes_t& bytes)
 	
 	size_t offset{ Config::CLIENT_ID_SZ };
 	m_entry.msgId = Utils::deserializeTrivialType<uint32_t>(bytes, offset);
+}
+
+void MessageSentResPayload::visit(Visitor& visitor)
+{
+	visitor.accept(*this);
 }
 
 std::string MessageSentResPayload::toString() const
@@ -166,6 +186,11 @@ PollMessageResPayload::PollMessageResPayload(const bytes_t& bytes)
 	}
 }
 
+void PollMessageResPayload::visit(Visitor& visitor)
+{
+	visitor.accept(*this);
+}
+
 std::string PollMessageResPayload::toString() const
 {
 	std::stringstream ss;
@@ -175,6 +200,11 @@ std::string PollMessageResPayload::toString() const
 	}
 
 	return ss.str();
+}
+
+void ErrorPayload::visit(Visitor& visitor)
+{
+	visitor.accept(*this);
 }
 
 std::string ErrorPayload::toString() const
