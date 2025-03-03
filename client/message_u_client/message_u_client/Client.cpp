@@ -6,6 +6,8 @@
 #include "ReqPayload.h"
 
 #include <iostream>
+#include <sstream>
+#include <fstream>
 
 Client::Client(context_t& ctx, const std::string& addr, const std::string& port)
 	: m_cli{ std::make_unique<CLI>("MessageU client at your service", "?") },
@@ -52,7 +54,7 @@ void Client::onCliReqClientList()
 		RequestCodes::USRS_LIST,
 		std::make_unique<UsersListReqPayload>() };
 
-	m_conn->send(req);
+	getConn().send(req);
 	auto res = getConn().recvResponse();
 
 	std::cout << res.getPayload().toString() << '\n';
@@ -60,26 +62,65 @@ void Client::onCliReqClientList()
 
 void Client::onCliReqPubKey()
 {
+	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+	RequestCodes::GET_PUB_KEY,
+	std::make_unique<GetPublicKeyReqPayload>() };
+
+	getConn().send(req);
+	auto res = getConn().recvResponse();
+
+	std::cout << res.getPayload().toString() << '\n';
 }
 
 void Client::onCliReqPendingMsgs()
 {
+	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+	RequestCodes::POLL_MSGS,
+	std::make_unique<PollMessagesReqPayload>() };
+
+	getConn().send(req);
+	auto res = getConn().recvResponse();
+
+	std::cout << res.getPayload().toString() << '\n';
 }
 
 void Client::onCliSetTextMsg()
 {
+	auto msgContent = getCLI().input("Enter your message: ");
+
+	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+			RequestCodes::SEND_MSG,
+			std::make_unique<SendMessageReqPayload>("", MessageTypes::SEND_TXT, msgContent.size(), msgContent)};
+
+	getConn().send(req);
+	auto res = getConn().recvResponse();
+
+	std::cout << res.getPayload().toString() << '\n';
 }
 
 void Client::onCliReqSymKey()
 {
+	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+			RequestCodes::SEND_MSG,
+			std::make_unique<SendMessageReqPayload>("", MessageTypes::GET_SYM_KEY) };
+
+	getConn().send(req);
+	auto res = getConn().recvResponse();
+
+	std::cout << res.getPayload().toString() << '\n';
 }
 
 void Client::onCliSendSymKey()
 {
+	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+			RequestCodes::SEND_MSG,
+			std::make_unique<SendMessageReqPayload>("", MessageTypes::SEND_SYM_KEY) };
+
+	getConn().send(req);
+	auto res = getConn().recvResponse();
+
+	std::cout << res.getPayload().toString() << '\n';
 }
-
-
-Client::~Client() = default;
 
 CLI& Client::getCLI()
 {
@@ -89,4 +130,145 @@ CLI& Client::getCLI()
 Connection& Client::getConn()
 {
 	return *m_conn;
+}
+
+Client::~Client() = default;
+
+ClientState::ClientState(const std::filesystem::path& path)
+{
+	if (std::filesystem::exists(path)) {
+		loadFromFile(path);
+	}
+}
+
+void ClientState::loadFromFile(const std::filesystem::path& path)
+{
+	m_isInitialized = true;
+	std::ifstream in{ path };
+	
+	if (!in.is_open()) {
+		throw std::runtime_error("Error: Failed to load client state from '" + path.filename().string() + "'");
+	}
+
+	std::stringstream ss;
+	ss << in.rdbuf();
+
+	std::string line;
+
+	std::getline(ss, line);
+	setUsername(line);
+
+	std::getline(ss, line);
+	setUUID(line);
+
+	std::getline(ss, line);
+	setPrivKey(line);
+}
+
+void ClientState::saveToFile(const std::filesystem::path& path, const std::string& username, const std::string& uuid, const std::string& privKey)
+{
+	m_isInitialized = true;
+	std::ofstream out{ path };
+
+	if (!out.is_open()) {
+		throw std::runtime_error("Error: Failed to load client state from '" + path.filename().string() + "'");
+	}
+
+	out << getUsername() << std::endl;
+	out << getUUID() << std::endl;
+	out << getPrivKey() << std::endl;
+}
+
+bool ClientState::isInitialized()
+{
+	return m_isInitialized;
+}
+
+void ClientState::addOtherClient(const std::string& name, const std::string& uuid)
+{
+	if (m_nameToClient.find(name) != m_nameToClient.end()) {
+		return;
+	}
+
+	OtherClientEntry other;
+	other.uuid = uuid;
+
+	m_nameToClient.insert({ name, OtherClientEntry {} });
+}
+
+void ClientState::setUsername(const std::string& username)
+{
+	m_store[ClientStateKeys::USERNAME] = username;
+}
+
+void ClientState::setUUID(const std::string& uuid)
+{
+	m_store[ClientStateKeys::UUID] = uuid;
+}
+
+void ClientState::setPubKey(const std::string& pubKey)
+{
+	m_store[ClientStateKeys::PUB_KEY] = pubKey;
+}
+
+void ClientState::setPubKey(const std::string& username, const std::string& pubKey)
+{
+	if (m_nameToClient.find(username) == m_nameToClient.end()) {
+		throw std::runtime_error("Error: Can't find username: '" + username + "'");
+	}
+
+	m_nameToClient[username].pubKey = pubKey;
+}
+
+void ClientState::setPrivKey(const std::string& privKey)
+{
+	m_store[ClientStateKeys::PRIV_KEY] = privKey;
+}
+
+void ClientState::setSymKey(const std::string& symKey)
+{
+	m_store[ClientStateKeys::SYM_KEY] = symKey;
+}
+
+const std::string& ClientState::getUsername()
+{
+	return m_store[ClientStateKeys::USERNAME];
+}
+
+const std::string& ClientState::getUUID()
+{
+	return m_store[ClientStateKeys::UUID];
+}
+
+const std::string& ClientState::getUUID(const std::string& username)
+{
+	if (m_nameToClient.find(username) == m_nameToClient.end()) {
+		throw std::runtime_error("Error: Can't find username: '" + username + "'");
+	}
+
+	return m_nameToClient[username].uuid;
+}
+
+const std::string& ClientState::getPubKey()
+{
+	return m_store[ClientStateKeys::PUB_KEY];
+}
+
+const std::string& ClientState::getPubKey(const std::string& username)
+{
+	if (m_nameToClient.find(username) == m_nameToClient.end()) {
+		throw std::runtime_error("Error: Can't find username: '" + username + "'");
+	}
+
+	return m_nameToClient[username].pubKey;
+}
+
+const std::string& ClientState::getPrivKey()
+{
+	return m_store[ClientStateKeys::PRIV_KEY];
+}
+
+const std::string& ClientState::getSymKey()
+{
+	return m_store[ClientStateKeys::SYM_KEY];
 }

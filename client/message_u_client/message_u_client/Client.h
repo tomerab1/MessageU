@@ -2,10 +2,59 @@
 
 #include <vector>
 #include <memory>
+#include <filesystem>
 #include <boost/asio.hpp>
 
 class CLI;
 class Connection;
+
+enum class ClientStateKeys {
+	USERNAME,
+	UUID,
+	PUB_KEY,
+	PRIV_KEY,
+	SYM_KEY,
+};
+
+class ClientState 
+{
+public:
+	struct OtherClientEntry;
+	using store_t = std::unordered_map<ClientStateKeys, std::string>;
+	using clients_map_t = std::unordered_map<std::string, OtherClientEntry>;
+
+	struct OtherClientEntry {
+		std::string uuid;
+		std::string pubKey;
+	};
+
+	ClientState(const std::filesystem::path& path);
+
+	void loadFromFile(const std::filesystem::path& path);
+	void saveToFile(const std::filesystem::path& path, const std::string& username, const std::string& uuid, const std::string& privKey);
+	bool isInitialized();
+	void addOtherClient(const std::string& name, const std::string& uuid);
+
+	void setUsername(const std::string& username);
+	void setUUID(const std::string& uuid);
+	void setPubKey(const std::string& pubKey);
+	void setPubKey(const std::string& username, const std::string& pubKey);
+	void setPrivKey(const std::string& privKey);
+	void setSymKey(const std::string& symKey);
+
+	const std::string& getUsername();
+	const std::string& getUUID();
+	const std::string& getUUID(const std::string& username);
+	const std::string& getPubKey();
+	const std::string& getPubKey(const std::string& username);
+	const std::string& getPrivKey();
+	const std::string& getSymKey();
+
+private:
+	store_t m_store;
+	clients_map_t m_nameToUUID;
+	bool m_isInitialized{ false };
+};
 
 class Client
 {
@@ -37,5 +86,6 @@ private:
 private:
 	cli_t m_cli;
 	connection_t m_conn;
+	ClientState m_state;
 };
 
