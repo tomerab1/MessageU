@@ -26,6 +26,7 @@ uint32_t RegisterReqPayload::getSize()
     return Config::NAME_MAX_SZ + Config::PUB_KEY_SZ;
 }
 
+
 UsersListReqPayload::bytes_t UsersListReqPayload::toBytes()
 {
     return bytes_t();
@@ -56,6 +57,7 @@ uint32_t GetPublicKeyReqPayload::getSize()
     return Config::CLIENT_ID_SZ;
 }
 
+
 SendMessageReqPayload::SendMessageReqPayload(const std::string& targetId, MessageTypes type, uint32_t msgSz, const std::string& msg)
     : m_targetId{targetId}, m_type{type}, m_msgSz{msgSz}, m_msg{msg}
 {
@@ -82,6 +84,7 @@ uint32_t SendMessageReqPayload::getSize()
 {
     return m_msgSz + sizeof(MessageTypes) + Config::CLIENT_ID_SZ + sizeof(m_msgSz);
 }
+
 
 PollMessagesReqPayload::bytes_t PollMessagesReqPayload::toBytes()
 {

@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <unordered_map>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <boost/asio.hpp>
@@ -23,10 +22,10 @@ public:
 	std::string what();
 
 	struct MapEntry {
-		MapEntry(ResponseCodes code, std::optional<uint32_t> expectedSz);
+		MapEntry(const std::vector<ResponseCodes>& codes, const std::vector<std::optional<uint32_t>>& expectedSzs);
 
-		ResponseCodes expectedCode;
-		std::optional<uint32_t> expectedSz;
+		std::vector<ResponseCodes> expectedCodes;
+		std::vector<std::optional<uint32_t>> expectedSzs;
 	};
 
 private:
@@ -49,12 +48,8 @@ public:
 	using socket_t = boost::asio::ip::tcp::socket;
 	using header_t = Response::Header;
 	using bytes_t = std::vector<uint8_t>;
-	using handler_map_t = std::unordered_map<uint16_t, std::function<Response(Connection&, RequestCodes)>>;
 
 	Connection(io_ctx_t& ctx, const std::string& addr, const std::string& port);
-
-	void addHandler(RequestCodes code, std::function<Response(Connection&, RequestCodes)> handler);
-	Response dispatch(RequestCodes code);
 	void send(Request& req);
 	Response recvResponse();
 
@@ -68,7 +63,6 @@ private:
 	resolver_t m_resolver;
 	socket_t m_socket;
 
-	handler_map_t m_handlerMap;
 	HeaderValidator m_headerValidator;
 	PayloadValidator m_payloadValidator;
 };

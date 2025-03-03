@@ -42,6 +42,7 @@ public:
 	explicit Request(const std::string& id, RequestCodes code, payload_t payload);
 
 	bytes_t toBytes();
+	RequestCodes getCode();
 	
 	~Request();
 

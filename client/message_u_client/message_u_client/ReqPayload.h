@@ -5,6 +5,7 @@
 #include <string>
 
 enum class MessageTypes : uint8_t;
+enum class RequestCodes : uint16_t;
 
 class ReqPayload {
 public:

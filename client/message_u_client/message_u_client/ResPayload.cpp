@@ -24,7 +24,7 @@ ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes 
 	case ResponseCodes::POLL_MSGS:
 		return std::make_unique<PollMessageResPayload>(bytes);
 	case ResponseCodes::ERR: 
-		break;
+		return std::make_unique<ErrorPayload>();
 	default:
 		throw std::runtime_error("Error: '" + std::to_string(Utils::EnumToUint16(code)) + "' is not a valid code");
 	}
@@ -175,4 +175,9 @@ std::string PollMessageResPayload::toString() const
 	}
 
 	return ss.str();
+}
+
+std::string ErrorPayload::toString() const
+{
+	return "Server responded with a generic error";
 }

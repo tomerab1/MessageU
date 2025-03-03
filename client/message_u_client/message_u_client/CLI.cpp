@@ -61,7 +61,7 @@ void CLI::clearScreen()
 #endif
 }
 
-std::string CLI::getStr(const std::string& prompt)
+std::string CLI::input(const std::string& prompt)
 {
 	std::cout << prompt << '\n';
 

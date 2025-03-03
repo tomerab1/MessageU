@@ -43,6 +43,11 @@ Request::bytes_t Request::toBytes()
 	return bytes;
 }
 
+RequestCodes Request::getCode()
+{
+	return m_header.code;
+}
+
 Request::~Request()
 {
 }

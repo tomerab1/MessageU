@@ -4,6 +4,7 @@
 #include "Utils.h"
 #include "Config.h"
 
+#include <boost/range/combine.hpp>
 #include <string>
 
 Connection::Connection(io_ctx_t& ctx, const std::string& addr, const std::string& port)
@@ -12,29 +13,15 @@ Connection::Connection(io_ctx_t& ctx, const std::string& addr, const std::string
 	boost::asio::connect(m_socket, m_resolver.resolve(addr, port));
 }
 
-void Connection::addHandler(RequestCodes code, std::function<Response(Connection&, RequestCodes)> handler)
-{
-	if (m_handlerMap.find(Utils::EnumToUint16(code)) != m_handlerMap.end()) {
-		return;
-	}
-
-	m_handlerMap.insert({ Utils::EnumToUint16(code), handler });
-}
-
-Response Connection::dispatch(RequestCodes code)
-{
-	return m_handlerMap[Utils::EnumToUint16(code)](*this, code);
-}
-
 Connection::header_t Connection::readHeader()
 {
 	std::vector<uint8_t> headerBytes(Config::RES_HEADER_SZ, 0);
+	recv(headerBytes, Config::RES_HEADER_SZ);
 
 	if (!m_headerValidator.accept(headerBytes)) {
 		throw std::runtime_error(m_headerValidator.what());
 	}
 
-	recv(headerBytes, Config::RES_HEADER_SZ);
 	return Response::Header::fromBytes(headerBytes);
 }
 
@@ -53,6 +40,7 @@ Connection::bytes_t Connection::readPayload(const header_t& header)
 
 void Connection::send(Request& req)
 {
+	m_headerValidator.setReqCode(req.getCode());
 	auto bytes = req.toBytes();
 	boost::asio::write(m_socket, boost::asio::buffer(bytes.data(), bytes.size()));
 }
@@ -69,19 +57,19 @@ size_t Connection::recv(bytes_t& outBytes, size_t recvSz)
 	return boost::asio::read(m_socket, boost::asio::buffer(outBytes.data(), recvSz));
 }
 
-HeaderValidator::MapEntry::MapEntry(ResponseCodes code, std::optional<uint32_t> expectedSz)
-	: expectedCode{code}, expectedSz{expectedSz}
+HeaderValidator::MapEntry::MapEntry(const std::vector<ResponseCodes>& codes, const std::vector<std::optional<uint32_t>>& expectedSzs)
+	: expectedCodes{codes}, expectedSzs{ expectedSzs }
 {
 }
 
 HeaderValidator::HeaderValidator()
 	: m_reqCode{}
 {
-	m_reqCodeToExpectedRes.insert({ RequestCodes::REGISTER, {ResponseCodes::REG_OK, Config::CLIENT_ID_SZ} });
-	m_reqCodeToExpectedRes.insert({ RequestCodes::USRS_LIST,  {ResponseCodes::USRS_LIST, std::nullopt} });
-	m_reqCodeToExpectedRes.insert({ RequestCodes::GET_PUB_KEY, {ResponseCodes::PUB_KEY, std::nullopt} });
-	m_reqCodeToExpectedRes.insert({ RequestCodes::SEND_MSG,  {ResponseCodes::MSG_SEND, std::nullopt} });
-	m_reqCodeToExpectedRes.insert({ RequestCodes::POLL_MSGS, {ResponseCodes::POLL_MSGS, std::nullopt} });
+	m_reqCodeToExpectedRes.insert({ RequestCodes::REGISTER, {{ResponseCodes::REG_OK, ResponseCodes::ERR}, {Config::CLIENT_ID_SZ, 0}}});
+	m_reqCodeToExpectedRes.insert({ RequestCodes::USRS_LIST,  {{ResponseCodes::USRS_LIST, ResponseCodes::ERR}, {std::nullopt, 0}}});
+	m_reqCodeToExpectedRes.insert({ RequestCodes::GET_PUB_KEY, {{ResponseCodes::PUB_KEY, ResponseCodes::ERR}, {std::nullopt, 0}}});
+	m_reqCodeToExpectedRes.insert({ RequestCodes::SEND_MSG,  {{ResponseCodes::MSG_SEND, ResponseCodes::ERR}, {std::nullopt, 0}}});
+	m_reqCodeToExpectedRes.insert({ RequestCodes::POLL_MSGS, {{ResponseCodes::POLL_MSGS, ResponseCodes::ERR}, {std::nullopt, 0}}});
 }
 
 void HeaderValidator::setReqCode(RequestCodes code)
@@ -93,6 +81,7 @@ bool HeaderValidator::accept(const std::vector<uint8_t>& bytes)
 {
 	auto itr = m_reqCodeToExpectedRes.find(m_reqCode);
 	if (itr == m_reqCodeToExpectedRes.end()) {
+		m_err = "Error: Unexpected request code '" + std::to_string(Utils::EnumToUint16(m_reqCode)) + "'";
 		return false;
 	}
 
@@ -100,19 +89,24 @@ bool HeaderValidator::accept(const std::vector<uint8_t>& bytes)
 	size_t offset{ 1 };
 
 	auto code = Utils::deserializeTrivialType<uint16_t>(bytes, offset);
-	if (ResponseCodes(code) != entry.expectedCode) {
-		m_err = "Error: Unexpeced response code: " + std::to_string(code);
-		return false;
-	}
-	
 	auto payloadSz = Utils::deserializeTrivialType<uint32_t>(bytes, offset);
-	if (entry.expectedSz != std::nullopt && payloadSz != entry.expectedSz.value()) {
-		m_err = "Error: Expected '" + std::to_string(entry.expectedSz.value()) + "' bytes but received '" + std::to_string(payloadSz) + "' bytes";
+
+	bool isValid{ false };
+	for (const auto& [expectedCode, expectedSz] : boost::combine(entry.expectedCodes, entry.expectedSzs)) {
+		if (ResponseCodes(code) == expectedCode && payloadSz == expectedSz) {
+			isValid = true;
+			break;
+		}
+	}
+
+	if (!isValid) {
+		m_err = "Error: Unexpected response combination: code " + std::to_string(code) + " with payload size " + std::to_string(payloadSz);
 		return false;
 	}
 
 	return true;
 }
+
 
 std::string HeaderValidator::what()
 {
@@ -121,7 +115,7 @@ std::string HeaderValidator::what()
 
 bool PayloadValidator::accept(const std::vector<uint8_t>& bytes)
 {
-	return false;
+	return true;
 }
 
 std::string PayloadValidator::what()

@@ -21,15 +21,18 @@ public:
 	~Client();
 
 private:
+	CLI& getCLI();
+	Connection& getConn();
+
 	void setupCliHandlers();
 
-	void onCliRegister(CLI& cli);
-	void onCliReqClientList(CLI& cli);
-	void onCliReqPubKey(CLI& cli);
-	void onCliReqPendingMsgs(CLI& cli);
-	void onCliSetTextMsg(CLI& cli);
-	void onCliReqSymKey(CLI& cli);
-	void onCliSendSymKey(CLI& cli);
+	void onCliRegister();
+	void onCliReqClientList();
+	void onCliReqPubKey();
+	void onCliReqPendingMsgs();
+	void onCliSetTextMsg();
+	void onCliReqSymKey();
+	void onCliSendSymKey();
 
 private:
 	cli_t m_cli;

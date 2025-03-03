@@ -97,4 +97,7 @@ private:
 	std::vector<MessageEntry> m_msgs;
 };
 
-class ErrorPayload : public ResPayload {};
+class ErrorPayload : public ResPayload {
+public:
+	std::string toString() const override;
+};

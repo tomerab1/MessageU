@@ -21,57 +21,72 @@ void Client::run()
 
 void Client::setupCliHandlers()
 {
-	m_cli->addHandler(CLIMenuOpts::REGISTER, "Register", std::bind(&Client::onCliRegister, this, std::ref(*m_cli)));
-	m_cli->addHandler(CLIMenuOpts::REQ_CLIENT_LIST, "Request for clients list", std::bind(&Client::onCliReqClientList, this, std::ref(*m_cli)));
-	m_cli->addHandler(CLIMenuOpts::REQ_PUB_KEY, "Request for public key", std::bind(&Client::onCliReqPubKey, this, std::ref(*m_cli)));
-	m_cli->addHandler(CLIMenuOpts::REQ_PENDING_MSGS, "Request for waiting messages", std::bind(&Client::onCliReqPendingMsgs, this, std::ref(*m_cli)));
-	m_cli->addHandler(CLIMenuOpts::SEND_TEXT, "Send a text message", std::bind(&Client::onCliSetTextMsg, this, std::ref(*m_cli)));
-	m_cli->addHandler(CLIMenuOpts::REQ_SYM_KEY, "Send a request for symmetric key", std::bind(&Client::onCliReqSymKey, this, std::ref(*m_cli)));
-	m_cli->addHandler(CLIMenuOpts::SEND_SYM_KEY, "Send your symmetric key", std::bind(&Client::onCliSendSymKey, this, std::ref(*m_cli)));
+	m_cli->addHandler(CLIMenuOpts::REGISTER, "Register", std::bind(&Client::onCliRegister, this));
+	m_cli->addHandler(CLIMenuOpts::REQ_CLIENT_LIST, "Request for clients list", std::bind(&Client::onCliReqClientList, this));
+	m_cli->addHandler(CLIMenuOpts::REQ_PUB_KEY, "Request for public key", std::bind(&Client::onCliReqPubKey, this));
+	m_cli->addHandler(CLIMenuOpts::REQ_PENDING_MSGS, "Request for waiting messages", std::bind(&Client::onCliReqPendingMsgs, this));
+	m_cli->addHandler(CLIMenuOpts::SEND_TEXT, "Send a text message", std::bind(&Client::onCliSetTextMsg, this));
+	m_cli->addHandler(CLIMenuOpts::REQ_SYM_KEY, "Send a request for symmetric key", std::bind(&Client::onCliReqSymKey, this));
+	m_cli->addHandler(CLIMenuOpts::SEND_SYM_KEY, "Send your symmetric key", std::bind(&Client::onCliSendSymKey, this));
 	m_cli->addHandler(CLIMenuOpts::EXIT, "Exit client", [](CLI& cli) {});
 }
 
-void Client::onCliRegister(CLI& cli)
+void Client::onCliRegister()
 {
-	auto username = cli.getStr("Enter a username: ");
+	auto username = getCLI().input("Enter a username: ");
 	std::string pubKey = "secret_key = hello123";
 
-	m_conn->addHandler(RequestCodes::REGISTER, [&username, &pubKey](Connection& conn, RequestCodes code) {
-		Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-			code,
-			std::make_unique<RegisterReqPayload>(username, pubKey) };
+	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+		RequestCodes::REGISTER,
+		std::make_unique<RegisterReqPayload>(username, pubKey) };
 
-		conn.send(req);
-		return conn.recvResponse();
-	});
+	getConn().send(req);
+	auto res = getConn().recvResponse();
 
-	auto res = m_conn->dispatch(RequestCodes::REGISTER);
 	std::cout << res.getPayload().toString() << '\n';
 }
 
-void Client::onCliReqClientList(CLI& cli)
+void Client::onCliReqClientList()
+{
+	Request req{ std::string(Config::CLIENT_ID_SZ, 0),
+		RequestCodes::USRS_LIST,
+		std::make_unique<UsersListReqPayload>() };
+
+	m_conn->send(req);
+	auto res = getConn().recvResponse();
+
+	std::cout << res.getPayload().toString() << '\n';
+}
+
+void Client::onCliReqPubKey()
 {
 }
 
-void Client::onCliReqPubKey(CLI& cli)
+void Client::onCliReqPendingMsgs()
 {
 }
 
-void Client::onCliReqPendingMsgs(CLI& cli)
+void Client::onCliSetTextMsg()
 {
 }
 
-void Client::onCliSetTextMsg(CLI& cli)
+void Client::onCliReqSymKey()
 {
 }
 
-void Client::onCliReqSymKey(CLI& cli)
-{
-}
-
-void Client::onCliSendSymKey(CLI& cli)
+void Client::onCliSendSymKey()
 {
 }
 
 
 Client::~Client() = default;
+
+CLI& Client::getCLI()
+{
+	return *m_cli;
+}
+
+Connection& Client::getConn()
+{
+	return *m_conn;
+}
