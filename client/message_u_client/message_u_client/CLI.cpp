@@ -20,6 +20,7 @@ void CLI::run()
 			displayMenu();
 
 			auto currOpt = getUserOpt();
+			std::cout << '\n';
 			if (currOpt == CLIMenuOpts::EXIT) {
 				break;
 			}

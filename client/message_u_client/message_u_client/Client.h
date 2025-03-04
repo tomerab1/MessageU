@@ -19,14 +19,15 @@ enum class ClientStateKeys {
 class ClientState 
 {
 public:
-	struct OtherClientEntry;
+	struct ClientEntry;
 	using store_t = std::unordered_map<ClientStateKeys, std::string>;
-	using clients_map_t = std::unordered_map<std::string, OtherClientEntry>;
+	using clients_map_t = std::unordered_map<std::string, ClientEntry>;
 	using rev_index_t = std::unordered_map<std::string, std::string>;
 
-	struct OtherClientEntry {
-		std::string uuid;
-		std::string pubKey;
+	struct ClientEntry {
+		std::string uuid{};
+		std::string pubKey{};
+		std::string symKey{};
 	};
 
 	ClientState(const std::filesystem::path& path);
@@ -34,6 +35,7 @@ public:
 	void loadFromFile(const std::filesystem::path& path);
 	void saveToFile(const std::filesystem::path& path, const std::string& username, const std::string& uuid, const std::string& privKey);
 	bool isInitialized();
+	bool hasSymKey(const std::string& username);
 	std::string getNameByUUID(const std::string& uuid);
 	void addClient(const std::string& name, const std::string& uuid);
 
@@ -42,7 +44,7 @@ public:
 	void setPubKey(const std::string& pubKey);
 	void setPubKey(const std::string& username, const std::string& pubKey);
 	void setPrivKey(const std::string& privKey);
-	void setSymKey(const std::string& symKey);
+	void setSymKey(const std::string& username, const std::string& symKey);
 
 	const std::string& getUsername();
 	std::string getUUIDUnhexed();
@@ -51,7 +53,10 @@ public:
 	const std::string& getPubKey();
 	const std::string& getPubKey(const std::string& username);
 	const std::string& getPrivKey();
-	const std::string& getSymKey();
+	const std::string& getSymKey(const std::string& username);
+
+private:
+	ClientEntry& getClient(const std::string& username);
 
 private:
 	store_t m_store;

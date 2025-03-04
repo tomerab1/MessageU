@@ -54,7 +54,7 @@ void Client::onCliRegister()
 	getConn().send(req);
 	auto res = getConn().recvResponse();
 
-	auto payloadVisitor = std::make_unique<ToStringVisitor>();
+	auto payloadVisitor = std::make_unique<ToStringVisitor>(getState());
 	res.getPayload().accept(*payloadVisitor);
 
 	if (res.getHeader().code == ResponseCodes::REG_OK) {
@@ -80,7 +80,7 @@ void Client::onCliReqClientList()
 	getConn().send(req);
 	auto res = getConn().recvResponse();
 
-	auto stringVisitor = std::make_unique<ToStringVisitor>();
+	auto stringVisitor = std::make_unique<ToStringVisitor>(getState());
 	auto stateVisitor = std::make_unique<ClientStateVisitor>(getState());
 
 	res.getPayload().accept(*stringVisitor);
@@ -91,8 +91,8 @@ void Client::onCliReqClientList()
 
 void Client::onCliReqPubKey()
 {
-	auto tragetUsername = getCLI().input("Enter a username: ");
-	auto targetUUID = getState().getUUID(tragetUsername);
+	auto targetUsername = getCLI().input("Enter a username: ");
+	auto targetUUID = getState().getUUID(targetUsername);
 
 	Request req{ getState().getUUIDUnhexed(),
 		RequestCodes::GET_PUB_KEY,
@@ -114,7 +114,7 @@ void Client::onCliReqPendingMsgs()
 	getConn().send(req);
 	auto res = getConn().recvResponse();
 
-	auto stringVisitor = std::make_unique<ToStringVisitor>();
+	auto stringVisitor = std::make_unique<ToStringVisitor>(getState());
 	res.getPayload().accept(*stringVisitor);
 
 	std::cout << stringVisitor->getString() << '\n';
@@ -122,8 +122,8 @@ void Client::onCliReqPendingMsgs()
 
 void Client::onCliSendTextMsg()
 {
-	auto tragetUsername = getCLI().input("Enter a username: ");
-	auto targetUUID = getState().getUUID(tragetUsername);
+	auto targetUsername = getCLI().input("Enter a username: ");
+	auto targetUUID = getState().getUUID(targetUsername);
 	auto msgContent = getCLI().input("Enter your message: ");
 
 	Request req{ getState().getUUIDUnhexed(),
@@ -136,26 +136,34 @@ void Client::onCliSendTextMsg()
 
 void Client::onCliReqSymKey()
 {
-	//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-	//		RequestCodes::SEND_MSG,
-	//		std::make_unique<SendMessageReqPayload>("", MessageTypes::GET_SYM_KEY) };
+	auto targetUsername = getCLI().input("Enter a username: ");
+	auto targetUUID = getState().getUUID(targetUsername);
 
-	//getConn().send(req);
-	//auto res = getConn().recvResponse();
+	Request req{ getState().getUUIDUnhexed(),
+			RequestCodes::SEND_MSG,
+			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::GET_SYM_KEY, 0, "")};
 
-	//std::cout << res.getPayload().toString() << '\n';
+	getConn().send(req);
+	getConn().recvResponse();
 }
 
 void Client::onCliSendSymKey()
 {
-	//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-	//		RequestCodes::SEND_MSG,
-	//		std::make_unique<SendMessageReqPayload>("", MessageTypes::SEND_SYM_KEY) };
+	auto targetUsername = getCLI().input("Enter a username: ");
+	auto targetUUID = getState().getUUID(targetUsername);
 
-	//getConn().send(req);
-	//auto res = getConn().recvResponse();
+	if (getState().getSymKey(targetUsername).empty()) {
+		getState().setSymKey(targetUsername, "sym_key");
+	}
 
-	//std::cout << res.getPayload().toString() << '\n';
+	auto symKey = getState().getSymKey(targetUsername);
+
+	Request req{ getState().getUUIDUnhexed(),
+			RequestCodes::SEND_MSG,
+			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_SYM_KEY, symKey.size(), symKey) };
+
+	getConn().send(req);
+	getConn().recvResponse();
 }
 
 CLI& Client::getCLI()
@@ -225,6 +233,11 @@ bool ClientState::isInitialized()
 	return m_isInitialized;
 }
 
+bool ClientState::hasSymKey(const std::string& username)
+{
+	return true;
+}
+
 std::string ClientState::getNameByUUID(const std::string& uuid)
 {
 	auto iter = m_uuidToName.find(uuid);
@@ -241,7 +254,7 @@ void ClientState::addClient(const std::string& name, const std::string& uuid)
 		return;
 	}
 
-	OtherClientEntry other;
+	ClientEntry other;
 	other.uuid = uuid;
 
 	m_nameToClient.insert({ name, other });
@@ -265,12 +278,7 @@ void ClientState::setPubKey(const std::string& pubKey)
 
 void ClientState::setPubKey(const std::string& username, const std::string& pubKey)
 {
-	auto iter = m_nameToClient.find(username);
-	if (iter == m_nameToClient.end()) {
-		throw std::runtime_error("Error: Can't find username: '" + username + "'");
-	}
-
-	iter->second.pubKey = pubKey;
+	getClient(username).pubKey = pubKey;
 }
 
 void ClientState::setPrivKey(const std::string& privKey)
@@ -278,9 +286,9 @@ void ClientState::setPrivKey(const std::string& privKey)
 	m_store[ClientStateKeys::PRIV_KEY] = privKey;
 }
 
-void ClientState::setSymKey(const std::string& symKey)
+void ClientState::setSymKey(const std::string& username, const std::string& symKey)
 {
-	m_store[ClientStateKeys::SYM_KEY] = symKey;
+	getClient(username).symKey = symKey;
 }
 
 const std::string& ClientState::getUsername()
@@ -312,12 +320,7 @@ const std::string& ClientState::getUUID()
 
 const std::string& ClientState::getUUID(const std::string& username)
 {
-	auto iter = m_nameToClient.find(username);
-	if (iter == m_nameToClient.end()) {
-		throw std::runtime_error("Error: Can't find username: '" + username + "'");
-	}
-
-	return iter->second.uuid;
+	return getClient(username).uuid;
 }
 
 const std::string& ClientState::getPubKey()
@@ -327,11 +330,7 @@ const std::string& ClientState::getPubKey()
 
 const std::string& ClientState::getPubKey(const std::string& username)
 {
-	if (m_nameToClient.find(username) == m_nameToClient.end()) {
-		throw std::runtime_error("Error: Can't find username: '" + username + "'");
-	}
-
-	return m_nameToClient[username].pubKey;
+	return getClient(username).pubKey;
 }
 
 const std::string& ClientState::getPrivKey()
@@ -339,7 +338,17 @@ const std::string& ClientState::getPrivKey()
 	return m_store[ClientStateKeys::PRIV_KEY];
 }
 
-const std::string& ClientState::getSymKey()
+const std::string& ClientState::getSymKey(const std::string& username)
 {
-	return m_store[ClientStateKeys::SYM_KEY];
+	return getClient(username).symKey;
+}
+
+ClientState::ClientEntry& ClientState::getClient(const std::string& username)
+{
+	auto iter = m_nameToClient.find(username);
+	if (iter == m_nameToClient.end()) {
+		throw std::runtime_error("Error: Can't find username: '" + username + "'");
+	}
+
+	return iter->second;
 }

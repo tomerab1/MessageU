@@ -120,6 +120,8 @@ public:
 
 class ToStringVisitor : public Visitor {
 public:
+	explicit ToStringVisitor(ClientState& state);
+
 	std::string getString();
 
 	void visit(const RegistrationResPayload& payload) override;
@@ -130,6 +132,7 @@ public:
 	void visit(const ErrorPayload& payload) override;
 
 private:
+	ClientState& m_state;
 	std::stringstream m_ss;
 };
 

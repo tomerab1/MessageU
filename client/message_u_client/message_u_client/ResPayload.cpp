@@ -166,6 +166,11 @@ void ErrorPayload::accept(Visitor& visitor)
 	visitor.visit(*this);
 }
 
+ToStringVisitor::ToStringVisitor(ClientState& state)
+	: m_state{state}
+{
+}
+
 std::string ToStringVisitor::getString()
 {
 	return m_ss.str();
@@ -202,7 +207,27 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 {
 	auto messages = payload.getMessages();
 	for (size_t i = 0; i < messages.size(); i++) {
-		m_ss << (i + 1) << ' ' << messages[i].content << "\n\n";
+		m_ss << "From: " << m_state.getNameByUUID(messages[i].senderId) << '\n';
+		m_ss << "Content:\n";
+		
+		switch (messages[i].msgType) {
+		case MessageTypes::SEND_TXT:
+			m_ss << (i + 1) << ' ' << messages[i].content;
+			break;
+		case MessageTypes::GET_SYM_KEY:
+			m_ss << "Request for symmetric key";
+			break;
+		case MessageTypes::SEND_SYM_KEY:
+			m_ss << "Symmetric key received";
+			break;
+		case MessageTypes::SEND_FILE:
+			m_ss << "FILE_PLACEHOLDER";
+			break;
+		default:
+			break;
+		}
+
+		m_ss << "\n-----<EOM>-----\n\n";
 	}
 }
 
