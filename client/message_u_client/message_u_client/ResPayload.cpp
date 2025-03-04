@@ -26,9 +26,9 @@ ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes 
 		return std::make_unique<PollMessageResPayload>(bytes);
 	case ResponseCodes::ERR: 
 		return std::make_unique<ErrorPayload>();
-	default:
-		throw std::runtime_error("Error: '" + std::to_string(Utils::EnumToUint16(code)) + "' is not a valid code");
 	}
+
+	throw std::runtime_error("Error: '" + std::to_string(Utils::EnumToUint16(code)) + "' is not a valid code");
 }
 
 RegistrationResPayload::RegistrationResPayload(const bytes_t& bytes)
@@ -55,10 +55,6 @@ void RegistrationResPayload::accept(Visitor& visitor)
 
 UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 {
-	if (bytes.empty()) {
-		throw std::runtime_error("Error: UsersListResPayload payload is empty");
-	}
-
 	size_t numUsers = bytes.size() / (Config::CLIENT_ID_SZ + Config::NAME_MAX_SZ);
 	size_t offset{ 0 };
 	m_users.resize(numUsers);
@@ -74,7 +70,10 @@ UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 		std::copy(bytes.begin() + offset, bytes.begin() + offset + Config::NAME_MAX_SZ, curr.name.begin());
 		offset += Config::NAME_MAX_SZ;
 
-		curr.name.shrink_to_fit();
+		auto pos = std::find(curr.name.begin(), curr.name.end(), '\0');
+		if (pos != curr.name.end()) {
+			curr.name.resize(std::distance(curr.name.begin(), pos));
+		}
 	}
 }
 
@@ -179,6 +178,11 @@ void ToStringVisitor::visit(const RegistrationResPayload& payload)
 
 void ToStringVisitor::visit(const UsersListResPayload& payload)
 {
+	if (payload.getUsers().empty()) {
+		m_ss << "There are no other registered clients at the moment";
+		return;
+	}
+
 	for (const auto& user : payload.getUsers()) {
 		m_ss << boost::algorithm::hex(user.id) << '\t' << user.name << '\n';
 	}
@@ -215,7 +219,7 @@ ClientStateVisitor::ClientStateVisitor(ClientState& state)
 void ClientStateVisitor::visit(const UsersListResPayload& payload)
 {
 	for (const auto& entry : payload.getUsers()) {
-		m_state.addClient(entry.id, entry.name);
+		m_state.addClient(entry.name, entry.id);
 	}
 }
 
@@ -243,5 +247,4 @@ void ClientStateVisitor::visit(const PollMessageResPayload& payload)
 
 void ClientStateVisitor::visit(const ErrorPayload& payload)
 {
-	throw std::logic_error("Error: Unreachable");
 }

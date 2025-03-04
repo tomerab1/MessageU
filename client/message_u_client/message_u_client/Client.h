@@ -45,6 +45,7 @@ public:
 	void setSymKey(const std::string& symKey);
 
 	const std::string& getUsername();
+	std::string getUUIDUnhexed();
 	const std::string& getUUID();
 	const std::string& getUUID(const std::string& username);
 	const std::string& getPubKey();

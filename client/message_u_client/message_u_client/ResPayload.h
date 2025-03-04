@@ -73,7 +73,7 @@ public:
 
 	struct MsgEntry {
 		std::string targetId;
-		uint32_t msgId;
+		uint32_t msgId{};
 	};
 
 	const MsgEntry& getMessage() const;
@@ -89,9 +89,9 @@ public:
 
 	struct MessageEntry {
 		std::string senderId;
-		uint32_t msgId;
+		uint32_t msgId{};
 		MessageTypes msgType;
-		uint32_t contentSz;
+		uint32_t contentSz{};
 		std::string content;
 	};
 

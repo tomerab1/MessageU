@@ -18,8 +18,7 @@ public:
 	HeaderValidator();
 
 	void setReqCode(RequestCodes code);
-	bool accept(const std::vector<uint8_t>& bytes);
-	std::string what();
+	void validate(const std::vector<uint8_t>& bytes);
 
 	struct MapEntry {
 		MapEntry(const std::vector<ResponseCodes>& codes, const std::vector<std::optional<uint32_t>>& expectedSzs);
@@ -30,14 +29,12 @@ public:
 
 private:
 	RequestCodes m_reqCode;
-	std::string m_err;
 	std::unordered_map<RequestCodes, MapEntry> m_reqCodeToExpectedRes;
 };
 
 class PayloadValidator {
 public:
-	bool accept(const std::vector<uint8_t>& bytes);
-	std::string what();
+	void validate(const std::vector<uint8_t>& bytes);
 };
 
 class Connection

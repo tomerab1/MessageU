@@ -16,24 +16,32 @@ CLI::CLI(const std::string& header, const std::string& footer)
 void CLI::run()
 {
 	while (true) {
-		displayMenu();
+		try {
+			displayMenu();
 
-		auto currOpt = getUserOpt();
-		if (currOpt == CLIMenuOpts::INVALID) {
-			continue;
-		}
-		if (currOpt == CLIMenuOpts::EXIT) {
-			break;
-		}
+			auto currOpt = getUserOpt();
+			if (currOpt == CLIMenuOpts::EXIT) {
+				break;
+			}
 
-		invoke(currOpt);
+			invoke(currOpt);
+		}
+		catch (const std::exception& e) {
+			std::cout << e.what() << '\n';
+		}
 	}
 }
 
 void CLI::invoke(CLIMenuOpts opt)
 {
 	auto optCode = Utils::EnumToUint16(opt);
-	m_handlers[optCode].handler();
+	auto iter = m_handlers.find(optCode);
+
+	if (iter == m_handlers.end()) {
+		throw std::runtime_error("Error: '" + std::to_string(optCode) + "' is not a valid option");
+	}
+
+	iter->second.handler();
 }
 
 void CLI::displayMenu()
@@ -86,7 +94,6 @@ CLIMenuOpts CLI::getUserOpt()
 		return CLIMenuOpts(Utils::strToInt(out));
 	}
 	catch (const std::exception& e) {
-		std::cout << out << " is not a valid option\n";
-		return CLIMenuOpts::INVALID;
+		throw std::runtime_error("Error: '" + out + "' is not a valid option");
 	}
 }

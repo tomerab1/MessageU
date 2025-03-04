@@ -8,7 +8,7 @@
 #include <string>
 
 Connection::Connection(io_ctx_t& ctx, const std::string& addr, const std::string& port)
-	: m_ctx{ctx}, m_socket{ ctx }, m_resolver{ctx}
+	: m_ctx{ ctx }, m_socket{ ctx }, m_resolver{ ctx }
 {
 	boost::asio::connect(m_socket, m_resolver.resolve(addr, port));
 }
@@ -17,10 +17,7 @@ Connection::header_t Connection::readHeader()
 {
 	std::vector<uint8_t> headerBytes(Config::RES_HEADER_SZ, 0);
 	recv(headerBytes, Config::RES_HEADER_SZ);
-
-	if (!m_headerValidator.accept(headerBytes)) {
-		throw std::runtime_error(m_headerValidator.what());
-	}
+	m_headerValidator.validate(headerBytes);
 
 	return Response::Header::fromBytes(headerBytes);
 }
@@ -29,11 +26,7 @@ Connection::bytes_t Connection::readPayload(const header_t& header)
 {
 	std::vector<uint8_t> payloadBytes(header.payloadSz, 0);
 	recv(payloadBytes, header.payloadSz);
-
-	 
-	if (!m_payloadValidator.accept(payloadBytes)) {
-			throw std::runtime_error(m_payloadValidator.what());
-	}
+	m_payloadValidator.validate(payloadBytes);
 
 	return payloadBytes;
 }
@@ -58,18 +51,18 @@ size_t Connection::recv(bytes_t& outBytes, size_t recvSz)
 }
 
 HeaderValidator::MapEntry::MapEntry(const std::vector<ResponseCodes>& codes, const std::vector<std::optional<uint32_t>>& expectedSzs)
-	: expectedCodes{codes}, expectedSzs{ expectedSzs }
+	: expectedCodes{ codes }, expectedSzs{ expectedSzs }
 {
 }
 
 HeaderValidator::HeaderValidator()
 	: m_reqCode{}
 {
-	m_reqCodeToExpectedRes.insert({ RequestCodes::REGISTER, {{ResponseCodes::REG_OK, ResponseCodes::ERR}, {Config::CLIENT_ID_SZ, 0}}});
-	m_reqCodeToExpectedRes.insert({ RequestCodes::USRS_LIST,  {{ResponseCodes::USRS_LIST, ResponseCodes::ERR}, {std::nullopt, 0}}});
-	m_reqCodeToExpectedRes.insert({ RequestCodes::GET_PUB_KEY, {{ResponseCodes::PUB_KEY, ResponseCodes::ERR}, {std::nullopt, 0}}});
-	m_reqCodeToExpectedRes.insert({ RequestCodes::SEND_MSG,  {{ResponseCodes::MSG_SEND, ResponseCodes::ERR}, {std::nullopt, 0}}});
-	m_reqCodeToExpectedRes.insert({ RequestCodes::POLL_MSGS, {{ResponseCodes::POLL_MSGS, ResponseCodes::ERR}, {std::nullopt, 0}}});
+	m_reqCodeToExpectedRes.insert({ RequestCodes::REGISTER, {{ResponseCodes::REG_OK, ResponseCodes::ERR}, {Config::CLIENT_ID_SZ, 0}} });
+	m_reqCodeToExpectedRes.insert({ RequestCodes::USRS_LIST,  {{ResponseCodes::USRS_LIST, ResponseCodes::ERR}, {std::nullopt, 0}} });
+	m_reqCodeToExpectedRes.insert({ RequestCodes::GET_PUB_KEY, {{ResponseCodes::PUB_KEY, ResponseCodes::ERR}, {std::nullopt, 0}} });
+	m_reqCodeToExpectedRes.insert({ RequestCodes::SEND_MSG,  {{ResponseCodes::MSG_SEND, ResponseCodes::ERR}, {std::nullopt, 0}} });
+	m_reqCodeToExpectedRes.insert({ RequestCodes::POLL_MSGS, {{ResponseCodes::POLL_MSGS, ResponseCodes::ERR}, {std::nullopt, 0}} });
 }
 
 void HeaderValidator::setReqCode(RequestCodes code)
@@ -77,12 +70,11 @@ void HeaderValidator::setReqCode(RequestCodes code)
 	m_reqCode = code;
 }
 
-bool HeaderValidator::accept(const std::vector<uint8_t>& bytes)
+void HeaderValidator::validate(const std::vector<uint8_t>& bytes)
 {
 	auto itr = m_reqCodeToExpectedRes.find(m_reqCode);
 	if (itr == m_reqCodeToExpectedRes.end()) {
-		m_err = "Error: Unexpected request code '" + std::to_string(Utils::EnumToUint16(m_reqCode)) + "'";
-		return false;
+		throw std::runtime_error("Error: Unexpected request code '" + std::to_string(Utils::EnumToUint16(m_reqCode)) + "'");
 	}
 
 	auto entry = itr->second;
@@ -97,29 +89,18 @@ bool HeaderValidator::accept(const std::vector<uint8_t>& bytes)
 			isValid = true;
 			break;
 		}
+		else if (ResponseCodes(code) == expectedCode && !expectedSz.has_value()) {
+			isValid = true;
+			break;
+		}
 	}
 
 	if (!isValid) {
-		m_err = "Error: Unexpected response combination: code " + std::to_string(code) + " with payload size " + std::to_string(payloadSz);
-		return false;
+		throw std::runtime_error("Error: Unexpected response combination: code " + std::to_string(code) + " with payload size " + std::to_string(payloadSz));
 	}
-
-	return true;
 }
 
-
-std::string HeaderValidator::what()
+void PayloadValidator::validate(const std::vector<uint8_t>& bytes)
 {
-	return m_err;
+	
 }
-
-bool PayloadValidator::accept(const std::vector<uint8_t>& bytes)
-{
-	return true;
-}
-
-std::string PayloadValidator::what()
-{
-	return std::string();
-}
-

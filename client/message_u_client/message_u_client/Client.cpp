@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <boost/algorithm/hex.hpp>
 
 Client::Client(context_t& ctx, const std::string& addr, const std::string& port)
 	: m_cli{ std::make_unique<CLI>("MessageU client at your service", "?") },
@@ -46,7 +47,7 @@ void Client::onCliRegister()
 	auto username = getCLI().input("Enter a username: ");
 	std::string pubKey = "secret_key = hello123";
 
-	Request req{ getState().getUUID(),
+	Request req{ getState().getUUIDUnhexed(),
 		RequestCodes::REGISTER,
 		std::make_unique<RegisterReqPayload>(username, pubKey) };
 
@@ -58,7 +59,6 @@ void Client::onCliRegister()
 
 	if (res.getHeader().code == ResponseCodes::REG_OK) {
 		auto uuid = payloadVisitor->getString();
-		std::cout << "UUID=" << uuid << '\n';
 
 		getState().setUsername(username);
 		getState().setPubKey(pubKey);
@@ -73,50 +73,65 @@ void Client::onCliRegister()
 
 void Client::onCliReqClientList()
 {
-	//Request req{ m_state.getUUID(),
-	//	RequestCodes::USRS_LIST,
-	//	std::make_unique<UsersListReqPayload>() };
+	Request req{ getState().getUUIDUnhexed(),
+		RequestCodes::USRS_LIST,
+		std::make_unique<UsersListReqPayload>() };
 
-	//getConn().send(req);
-	//auto res = getConn().recvResponse();
+	getConn().send(req);
+	auto res = getConn().recvResponse();
 
-	//std::cout << res.getPayload().toString() << '\n';
+	auto stringVisitor = std::make_unique<ToStringVisitor>();
+	auto stateVisitor = std::make_unique<ClientStateVisitor>(getState());
+
+	res.getPayload().accept(*stringVisitor);
+	res.getPayload().accept(*stateVisitor);
+
+	std::cout << stringVisitor->getString() << '\n';
 }
 
 void Client::onCliReqPubKey()
 {
-	//Request req{ std::string(Config::CLIENT_ID_SZ, 0), RequestCodes::GET_PUB_KEY, std::make_unique<GetPublicKeyReqPayload>() };
+	auto tragetUsername = getCLI().input("Enter a username: ");
+	auto targetUUID = getState().getUUID(tragetUsername);
 
-	//getConn().send(req);
-	//auto res = getConn().recvResponse();
+	Request req{ getState().getUUIDUnhexed(),
+		RequestCodes::GET_PUB_KEY,
+		std::make_unique<GetPublicKeyReqPayload>(targetUUID) };
 
-	//std::cout << res.getPayload().toString() << '\n';
+	getConn().send(req);
+	auto res = getConn().recvResponse();
+
+	auto stateVisitor = std::make_unique<ClientStateVisitor>(getState());
+	res.getPayload().accept(*stateVisitor);
 }
 
 void Client::onCliReqPendingMsgs()
 {
-	//Request req{ m_state.getUUID(),
-	//RequestCodes::POLL_MSGS,
-	//std::make_unique<PollMessagesReqPayload>() };
+	Request req{ getState().getUUIDUnhexed(),
+		RequestCodes::POLL_MSGS,
+		std::make_unique<PollMessagesReqPayload>() };
 
-	//getConn().send(req);
-	//auto res = getConn().recvResponse();
+	getConn().send(req);
+	auto res = getConn().recvResponse();
 
-	//std::cout << res.getPayload().toString() << '\n';
+	auto stringVisitor = std::make_unique<ToStringVisitor>();
+	res.getPayload().accept(*stringVisitor);
+
+	std::cout << stringVisitor->getString() << '\n';
 }
 
 void Client::onCliSendTextMsg()
 {
-	//auto msgContent = getCLI().input("Enter your message: ");
+	auto tragetUsername = getCLI().input("Enter a username: ");
+	auto targetUUID = getState().getUUID(tragetUsername);
+	auto msgContent = getCLI().input("Enter your message: ");
 
-	//Request req{ std::string(Config::CLIENT_ID_SZ, 0),
-	//		RequestCodes::SEND_MSG,
-	//		std::make_unique<SendMessageReqPayload>("", MessageTypes::SEND_TXT, msgContent.size(), msgContent)};
+	Request req{ getState().getUUIDUnhexed(),
+			RequestCodes::SEND_MSG,
+			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_TXT, msgContent.size(), msgContent)};
 
-	//getConn().send(req);
-	//auto res = getConn().recvResponse();
-
-	//std::cout << res.getPayload().toString() << '\n';
+	getConn().send(req);
+	getConn().recvResponse();
 }
 
 void Client::onCliReqSymKey()
@@ -250,11 +265,12 @@ void ClientState::setPubKey(const std::string& pubKey)
 
 void ClientState::setPubKey(const std::string& username, const std::string& pubKey)
 {
-	if (m_nameToClient.find(username) == m_nameToClient.end()) {
+	auto iter = m_nameToClient.find(username);
+	if (iter == m_nameToClient.end()) {
 		throw std::runtime_error("Error: Can't find username: '" + username + "'");
 	}
 
-	m_nameToClient[username].pubKey = pubKey;
+	iter->second.pubKey = pubKey;
 }
 
 void ClientState::setPrivKey(const std::string& privKey)
@@ -272,11 +288,23 @@ const std::string& ClientState::getUsername()
 	return m_store[ClientStateKeys::USERNAME];
 }
 
+std::string ClientState::getUUIDUnhexed()
+{
+	auto uuid = getUUID();
+	if (uuid == Config::EMPTY_UUID) {
+		return uuid;
+	}
+
+	std::string unhex;
+	boost::algorithm::unhex(uuid, std::back_inserter(unhex));
+	return unhex;
+}
+
 const std::string& ClientState::getUUID()
 {
 	if (m_store.find(ClientStateKeys::UUID) == m_store.end()) {
 		// Return an empty uuid (for first time before registration).
-		return std::string();
+		return Config::EMPTY_UUID;
 	}
 
 	return m_store[ClientStateKeys::UUID];
@@ -284,11 +312,12 @@ const std::string& ClientState::getUUID()
 
 const std::string& ClientState::getUUID(const std::string& username)
 {
-	if (m_nameToClient.find(username) == m_nameToClient.end()) {
+	auto iter = m_nameToClient.find(username);
+	if (iter == m_nameToClient.end()) {
 		throw std::runtime_error("Error: Can't find username: '" + username + "'");
 	}
 
-	return m_nameToClient[username].uuid;
+	return iter->second.uuid;
 }
 
 const std::string& ClientState::getPubKey()
