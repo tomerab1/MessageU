@@ -33,7 +33,7 @@ public:
 	ClientState(const std::filesystem::path& path);
 
 	void loadFromFile(const std::filesystem::path& path);
-	void saveToFile(const std::filesystem::path& path, const std::string& username, const std::string& uuid, const std::string& privKey);
+	void saveToFile(const std::filesystem::path& path);
 	bool isInitialized();
 	bool hasSymKey(const std::string& username);
 	std::string getNameByUUID(const std::string& uuid);

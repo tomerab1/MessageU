@@ -66,9 +66,9 @@ void Client::onCliRegister()
 
 		getState().setUsername(username);
 		getState().setPubKey(pubKey);
-		getState().setPrivKey(Base64Wrapper::encode(rsapriv.getPrivateKey()));
+		getState().setPrivKey(rsapriv.getPrivateKey());
 		getState().setUUID(uuid);
-		getState().saveToFile(Config::ME_DOT_INFO_PATH, username, uuid, pubKey);
+		getState().saveToFile(Config::ME_DOT_INFO_PATH);
 
 		setupCliHandlers();
 	} else {
@@ -120,6 +120,9 @@ void Client::onCliReqPendingMsgs()
 	auto res = getConn().recvResponse();
 
 	auto stringVisitor = std::make_unique<ToStringVisitor>(getState());
+	auto stateVisitor = std::make_unique<ClientStateVisitor>(getState());
+
+	res.getPayload().accept(*stateVisitor);
 	res.getPayload().accept(*stringVisitor);
 
 	std::cout << stringVisitor->getString() << '\n';
@@ -130,10 +133,14 @@ void Client::onCliSendTextMsg()
 	auto targetUsername = getCLI().input("Enter a username: ");
 	auto targetUUID = getState().getUUID(targetUsername);
 	auto msgContent = getCLI().input("Enter your message: ");
+	auto symKey = getState().getSymKey(targetUsername);
+
+	AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.c_str()), symKey.size());
+	auto encryptedMsg = aes.encrypt(msgContent.c_str(), msgContent.size());
 
 	Request req{ getState().getUUIDUnhexed(),
 			RequestCodes::SEND_MSG,
-			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_TXT, msgContent.size(), msgContent)};
+			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_TXT, encryptedMsg.size(), encryptedMsg)};
 
 	getConn().send(req);
 	getConn().recvResponse();
@@ -156,15 +163,25 @@ void Client::onCliSendSymKey()
 {
 	auto targetUsername = getCLI().input("Enter a username: ");
 	auto targetUUID = getState().getUUID(targetUsername);
+	auto targetPubKey = getState().getPubKey(targetUsername);
 
 	if (getState().getSymKey(targetUsername).empty()) {
-		getState().setSymKey(targetUsername, "sym_key");
+		unsigned char key[AESWrapper::DEFAULT_KEYLENGTH];
+		AESWrapper aes(AESWrapper::GenerateKey(key, AESWrapper::DEFAULT_KEYLENGTH), AESWrapper::DEFAULT_KEYLENGTH);
+		std::string symKey;
+		symKey.resize(AESWrapper::DEFAULT_KEYLENGTH);
+		std::copy(std::begin(key), std::end(key), symKey.begin());
+
+		getState().setSymKey(targetUsername, symKey);
 	}
 
 	auto symKey = getState().getSymKey(targetUsername);
+	auto rsaPub = RSAPublicWrapper(targetPubKey);
+	auto encryptedSymKey = rsaPub.encrypt(symKey);
+
 	Request req{ getState().getUUIDUnhexed(),
 			RequestCodes::SEND_MSG,
-			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_SYM_KEY, symKey.size(), symKey) };
+			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_SYM_KEY, encryptedSymKey.size(), encryptedSymKey) };
 
 	getConn().send(req);
 	getConn().recvResponse();
@@ -214,11 +231,11 @@ void ClientState::loadFromFile(const std::filesystem::path& path)
 	std::getline(ss, line);
 	setUUID(line);
 
-	std::getline(ss, line);
-	setPrivKey(line);
+	std::string priKey{ std::istreambuf_iterator<char>(ss), std::istreambuf_iterator<char>() };
+	setPrivKey(Base64Wrapper::decode(priKey));
 }
 
-void ClientState::saveToFile(const std::filesystem::path& path, const std::string& username, const std::string& uuid, const std::string& privKey)
+void ClientState::saveToFile(const std::filesystem::path& path)
 {
 	m_isInitialized = true;
 	std::ofstream out{ path };
@@ -229,7 +246,7 @@ void ClientState::saveToFile(const std::filesystem::path& path, const std::strin
 
 	out << getUsername() << std::endl;
 	out << getUUID() << std::endl;
-	out << getPrivKey() << std::endl;
+	out << Base64Wrapper::encode(getPrivKey()) << std::endl;
 }
 
 bool ClientState::isInitialized()

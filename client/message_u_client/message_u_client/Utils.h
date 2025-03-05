@@ -8,8 +8,8 @@
 namespace Utils {
 	template<typename T>
 	void serializeTrivialType(std::vector<uint8_t>& outVec, size_t& outOffset, T toSerialize) {
-		auto inNetOrder = boost::endian::native_to_big(toSerialize);
-		std::memcpy(outVec.data() + outOffset, &inNetOrder, sizeof(T));
+		auto inNetOrder = boost::endian::native_to_little(toSerialize);
+		std::memcpy(outVec.data() + outOffset, &toSerialize, sizeof(T));
 		outOffset += sizeof(T);
 	}
 
@@ -18,7 +18,7 @@ namespace Utils {
 		T res;
 		std::memcpy(&res, bytes.data() + outOffset, sizeof(T));
 		outOffset += sizeof(T);
-		return boost::endian::big_to_native(res);
+		return res;
 	}
 
 	template<typename T>
@@ -32,5 +32,6 @@ namespace Utils {
 	}
 
 	int32_t strToInt(std::string& str);
+	
 	void trimStr(std::string& str);
 }

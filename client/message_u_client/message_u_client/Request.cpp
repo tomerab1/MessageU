@@ -3,6 +3,8 @@
 #include "Utils.h"
 #include "ReqPayload.h"
 
+#include <iostream>
+
 Request::Header::Header(const std::string& id, char version, RequestCodes code, uint32_t payloadSz)
 	: id{id}, version{version}, code{code}, payloadSz{payloadSz}
 {
@@ -10,15 +12,26 @@ Request::Header::Header(const std::string& id, char version, RequestCodes code, 
 
 Request::bytes_t Request::Header::toBytes()
 {
-	bytes_t bytes(Config::HEADER_BYTES_SZ, 0);
+	bytes_t bytes;
 	size_t offset{ 0 };
 	
+	bytes.resize(Config::HEADER_BYTES_SZ);
 	std::copy(id.begin(), id.end(), bytes.begin());
 	offset += Config::CLIENT_ID_SZ;
 
+	size_t test{ Config::CLIENT_ID_SZ };
+
 	Utils::serializeTrivialType(bytes, offset, version);
+
+	std::cout << (int)Utils::deserializeTrivialType<uint8_t>(bytes, test) << '\n';
+
 	Utils::serializeTrivialType(bytes, offset, Utils::EnumToUint16(code));
+
+	std::cout << (int)Utils::deserializeTrivialType<uint16_t>(bytes, test) << '\n';
+
 	Utils::serializeTrivialType(bytes, offset, payloadSz);
+
+	std::cout << (int)Utils::deserializeTrivialType<uint32_t>(bytes, test) << '\n';
 
 	return bytes;
 }
@@ -32,9 +45,10 @@ Request::bytes_t Request::toBytes()
 {
 	auto headerBytes = m_header.toBytes();
 	auto payloadBytes = m_payload->toBytes();
-	bytes_t bytes(headerBytes.size() + payloadBytes.size(), 0);
+	bytes_t bytes;
 	size_t offset{ 0 };
 
+	bytes.resize(headerBytes.size() + payloadBytes.size());
 	std::copy(headerBytes.begin(), headerBytes.end(), bytes.begin());
 	offset += headerBytes.size();
 

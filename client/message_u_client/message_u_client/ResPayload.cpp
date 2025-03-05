@@ -4,6 +4,8 @@
 #include "Client.h"
 #include "Utils.h"
 #include "Config.h"
+#include "RSAWrapper.h"
+#include "AESWrapper.h"
 
 #include <stdexcept>
 #include <string>
@@ -97,7 +99,7 @@ PublicKeyResPayload::PublicKeyResPayload(const bytes_t& bytes)
 	m_entry.pubKey.resize(Config::PUB_KEY_SZ);
 
 	std::copy(bytes.begin(), bytes.begin() + Config::CLIENT_ID_SZ, m_entry.id.begin());
-	std::copy(bytes.begin(), bytes.begin() + Config::PUB_KEY_SZ, m_entry.pubKey.begin());
+	std::copy(bytes.begin() + Config::CLIENT_ID_SZ, bytes.end(), m_entry.pubKey.begin());
 }
 
 void PublicKeyResPayload::accept(Visitor& visitor)
@@ -213,9 +215,15 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 		m_ss << "Content:\n";
 		
 		switch (messages[i].msgType) {
-		case MessageTypes::SEND_TXT:
-			m_ss << (i + 1) << ' ' << messages[i].content;
+		case MessageTypes::SEND_TXT: {
+			auto username = m_state.getNameByUUID(messages[i].senderId);
+			auto symKey = m_state.getSymKey(username);
+			auto msg = messages[i].content;
+			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.c_str()), symKey.size());
+
+			m_ss << aes.decrypt(msg.c_str(), msg.size());
 			break;
+		}
 		case MessageTypes::GET_SYM_KEY:
 			m_ss << "Request for symmetric key";
 			break;
@@ -257,17 +265,31 @@ void ClientStateVisitor::visit(const PublicKeyResPayload& payload)
 	m_state.setPubKey(name, entry.pubKey);
 }
 
+void ClientStateVisitor::visit(const PollMessageResPayload& payload)
+{
+	auto messages = payload.getMessages();
+	for (size_t i = 0; i < messages.size(); i++) {
+		switch (messages[i].msgType) {
+		case MessageTypes::SEND_SYM_KEY: {
+			auto privKey = m_state.getPrivKey();
+			auto rsaprive = RSAPrivateWrapper(privKey);
+			auto username = m_state.getNameByUUID(messages[i].senderId);
+
+			m_state.setSymKey(username, rsaprive.decrypt(messages[i].content));
+		}
+		break;
+		default:
+			break;
+		}
+	}
+}
+
 void ClientStateVisitor::visit(const RegistrationResPayload& payload)
 {
 	throw std::logic_error("Error: Unreachable");
 }
 
 void ClientStateVisitor::visit(const MessageSentResPayload& payload)
-{
-	throw std::logic_error("Error: Unreachable");
-}
-
-void ClientStateVisitor::visit(const PollMessageResPayload& payload)
 {
 	throw std::logic_error("Error: Unreachable");
 }

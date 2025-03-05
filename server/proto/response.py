@@ -19,7 +19,7 @@ class ResPayload(ABC):
 
 
 class RegistrationOkPayload(ResPayload):
-    _RES_FMT = "!16s"
+    _RES_FMT = "<16s"
     _VALID_UUID_SZ = 16
 
     def __init__(self, uuid):
@@ -38,7 +38,7 @@ class RegistrationOkPayload(ResPayload):
 
 
 class ListUsersPayload(ResPayload):
-    _RES_FMT = "!16s255s"
+    _RES_FMT = "<16s255s"
     _FMT_SZ = struct.calcsize(_RES_FMT)
 
     def __init__(self, users_list):
@@ -62,7 +62,7 @@ class ListUsersPayload(ResPayload):
 
 
 class PublicKeyPayload(ResPayload):
-    _RES_FMT = "!16s160s"
+    _RES_FMT = "<16s160s"
     _FMT_SZ = struct.calcsize(_RES_FMT)
 
     def __init__(self, client_id, public_key):
@@ -82,7 +82,7 @@ class PublicKeyPayload(ResPayload):
 
 
 class MessageSentPayload(ResPayload):
-    _RES_FMT = "!16sI"
+    _RES_FMT = "<16sI"
     _FMT_SZ = struct.calcsize(_RES_FMT)
 
     def __init__(self, dst_client_id, msg_id):
@@ -100,7 +100,7 @@ class MessageSentPayload(ResPayload):
 
 
 class PollMessagePayload(ResPayload):
-    _RES_FMT = "!16sIBI"
+    _RES_FMT = "<16sIBI"
     _FMT_SZ = struct.calcsize(_RES_FMT)
 
     def __init__(self, msgs: list[MessageEntity]):
@@ -166,7 +166,7 @@ class ResponseCodes(Enum):
 class Response:
     @dataclass
     class Header:
-        _HEADER_FMT = "!BHI"
+        _HEADER_FMT = "<BHI"
 
         version: int
         code: int
