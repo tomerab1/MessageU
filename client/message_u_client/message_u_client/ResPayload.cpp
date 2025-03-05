@@ -173,7 +173,9 @@ ToStringVisitor::ToStringVisitor(ClientState& state)
 
 std::string ToStringVisitor::getString()
 {
-	return m_ss.str();
+	std::string result = m_ss.str();
+	m_ss.clear();
+	return result;
 }
 
 void ToStringVisitor::visit(const RegistrationResPayload& payload)

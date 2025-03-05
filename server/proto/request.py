@@ -28,8 +28,8 @@ class RegistrationPayload(ReqPayload):
     def from_bytes(cls, data, data_len=0):
         try:
             data = struct.unpack(RegistrationPayload._PAYLOAD_FMT, data)
-            username = bytes(data[:255]).rstrip(b"\x00").decode("utf-8")
-            key = bytes(data[255:]).rstrip(b"\x00").decode("utf-8")
+            username = bytes(data[:255]).rstrip(b"\x00")
+            key = bytes(data[255:]).rstrip(b"\x00")
 
             return cls(username, key)
         except Exception as e:

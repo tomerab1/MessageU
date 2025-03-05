@@ -54,7 +54,7 @@ class ListUsersPayload(ResPayload):
                 struct.pack(
                     ListUsersPayload._RES_FMT,
                     user.get_uuid(),
-                    user.get_username().encode("utf-8").ljust(255, b"\x00"),
+                    user.get_username().ljust(255, b"\x00"),
                 )
                 for user in self._users_list
             ]
@@ -77,7 +77,7 @@ class PublicKeyPayload(ResPayload):
         return struct.pack(
             PublicKeyPayload._RES_FMT,
             self._client_id,
-            self._public_key.encode("utf-8").ljust(160, b"\x00"),
+            self._public_key.ljust(160, b"\x00"),
         )
 
 

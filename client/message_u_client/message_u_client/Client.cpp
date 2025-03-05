@@ -4,6 +4,9 @@
 #include "Request.h"
 #include "ResPayload.h"
 #include "ReqPayload.h"
+#include "Base64Wrapper.h"
+#include "RSAWrapper.h"
+#include "AESWrapper.h"
 
 #include <iostream>
 #include <sstream>
@@ -45,7 +48,8 @@ void Client::setupCliHandlers()
 void Client::onCliRegister()
 {
 	auto username = getCLI().input("Enter a username: ");
-	std::string pubKey = "secret_key = hello123";
+	RSAPrivateWrapper rsapriv;
+	std::string pubKey = rsapriv.getPublicKey();
 
 	Request req{ getState().getUUIDUnhexed(),
 		RequestCodes::REGISTER,
@@ -62,6 +66,7 @@ void Client::onCliRegister()
 
 		getState().setUsername(username);
 		getState().setPubKey(pubKey);
+		getState().setPrivKey(Base64Wrapper::encode(rsapriv.getPrivateKey()));
 		getState().setUUID(uuid);
 		getState().saveToFile(Config::ME_DOT_INFO_PATH, username, uuid, pubKey);
 
@@ -157,7 +162,6 @@ void Client::onCliSendSymKey()
 	}
 
 	auto symKey = getState().getSymKey(targetUsername);
-
 	Request req{ getState().getUUIDUnhexed(),
 			RequestCodes::SEND_MSG,
 			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_SYM_KEY, symKey.size(), symKey) };

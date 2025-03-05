@@ -8,6 +8,9 @@ import selectors
 import socket
 import sys
 import signal
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MessageUServer:
@@ -57,7 +60,7 @@ class MessageUServer:
             if data:
                 self._controller.dispatch(conn, data)
         except Exception as e:
-            print(f"{e}")
+            logger.exception(f"{e}")
             self._sel.unregister(conn)
             conn.close()
 

@@ -105,10 +105,13 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Users\97254\Desktop\cryptopp890;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>C:\Users\97254\Desktop\cryptopp890\x64\Output\Debug\cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -128,6 +131,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AESWrapper.cpp" />
+    <ClCompile Include="Base64Wrapper.cpp" />
     <ClCompile Include="CLI.cpp" />
     <ClCompile Include="Client.cpp" />
     <ClCompile Include="Config.h" />
@@ -137,12 +142,15 @@
     <ClCompile Include="Request.cpp" />
     <ClCompile Include="ResPayload.cpp" />
     <ClCompile Include="Response.cpp" />
+    <ClCompile Include="RSAWrapper.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AESWrapper.h" />
+    <ClInclude Include="Base64Wrapper.h" />
     <ClInclude Include="CLI.h" />
     <ClInclude Include="Client.h" />
     <ClInclude Include="Connection.h" />
@@ -150,6 +158,7 @@
     <ClInclude Include="Request.h" />
     <ClInclude Include="ResPayload.h" />
     <ClInclude Include="Response.h" />
+    <ClInclude Include="RSAWrapper.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
