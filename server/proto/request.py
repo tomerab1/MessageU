@@ -154,19 +154,26 @@ class Request:
         client_id: str
         version: int
         code: int
+        payload_sz: int
+
+        @staticmethod
+        def from_bytes(packet):
+            data = struct.unpack(Request._HEADER_FMT, packet[: Request._HEADER_SZ])
+            client_id, version, code, payload_size = data
+            return Request.Header(client_id, version, code, payload_size)
 
     def __init__(self, packet):
-        data = struct.unpack(Request._HEADER_FMT, packet[: Request._HEADER_SZ])
-        client_id, version, code, payload_size = data
-        self._header = Request.Header(client_id, version, code)
+        self._header = Request.Header.from_bytes(packet)
 
-        code = RequestCodes.code_to_enum(code)
+        code = RequestCodes.code_to_enum(self._header.code)
         payload_cls = Request._PAYLOAD_CLASSES.get(code)
         if payload_cls is None:
             raise InvalidCodeError(f"Error: request '{code}' is invalid")
 
-        raw_payload = packet[Request._HEADER_SZ : Request._HEADER_SZ + payload_size]
-        self._payload = payload_cls.from_bytes(raw_payload, payload_size)
+        raw_payload = packet[
+            Request._HEADER_SZ : Request._HEADER_SZ + self._header.payload_sz
+        ]
+        self._payload = payload_cls.from_bytes(raw_payload, self._header.payload_sz)
 
     def get_header(self):
         return self._header

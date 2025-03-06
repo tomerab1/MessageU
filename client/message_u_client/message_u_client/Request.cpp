@@ -22,16 +22,8 @@ Request::bytes_t Request::Header::toBytes()
 	size_t test{ Config::CLIENT_ID_SZ };
 
 	Utils::serializeTrivialType(bytes, offset, version);
-
-	std::cout << (int)Utils::deserializeTrivialType<uint8_t>(bytes, test) << '\n';
-
 	Utils::serializeTrivialType(bytes, offset, Utils::EnumToUint16(code));
-
-	std::cout << (int)Utils::deserializeTrivialType<uint16_t>(bytes, test) << '\n';
-
 	Utils::serializeTrivialType(bytes, offset, payloadSz);
-
-	std::cout << (int)Utils::deserializeTrivialType<uint32_t>(bytes, test) << '\n';
 
 	return bytes;
 }

@@ -3,6 +3,7 @@ from controller.controller import Controller
 from repository.ram_repository import RamRepository
 from services.client_service import ClientService
 from services.message_service import MessagesService
+from proto.request import Request
 
 import selectors
 import socket
@@ -20,6 +21,7 @@ class MessageUServer:
         self._port = port
         self._backlog = backlog
         self._sock = socket.socket()
+        self._buffers = dict()
 
         self._setup()
         self._install_sig_handler()
@@ -53,15 +55,34 @@ class MessageUServer:
 
     def _read(self, conn, mask):
         try:
-            # split to recv header and then recv the payload
-            # header = conn.recv(Config.REQ_HEADER_SZ)
+            buffer = self._buffers.get(conn, b"")
 
-            data = conn.recv(1024)
-            if data:
-                self._controller.dispatch(conn, data)
+            while True:
+                try:
+                    chunk = conn.recv(Config.READ_SZ)
+                    if not chunk:
+                        break
+                    buffer += chunk
+                except BlockingIOError:
+                    break
+
+            self._buffers[conn] = buffer
+            if len(buffer) < Config.REQ_HEADER_SZ:
+                return
+
+            header = Request.Header.from_bytes(buffer[: Request._HEADER_SZ])
+            total_length = Config.REQ_HEADER_SZ + header.payload_sz
+            if len(buffer) < total_length:
+                return
+
+            data = buffer[:total_length]
+            self._buffers[conn] = buffer[total_length:]
+            self._controller.dispatch(conn, data)
         except Exception as e:
             logger.exception(f"{e}")
             self._sel.unregister(conn)
+            if conn in self._buffers:
+                del self._buffers[conn]
             conn.close()
 
     def _install_sig_handler(self):

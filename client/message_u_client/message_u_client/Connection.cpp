@@ -15,7 +15,9 @@ Connection::Connection(io_ctx_t& ctx, const std::string& addr, const std::string
 
 Connection::header_t Connection::readHeader()
 {
-	std::vector<uint8_t> headerBytes(Config::RES_HEADER_SZ, 0);
+	std::vector<uint8_t> headerBytes;
+	headerBytes.resize(Config::RES_HEADER_SZ);
+
 	recv(headerBytes, Config::RES_HEADER_SZ);
 	m_headerValidator.validate(headerBytes);
 
@@ -24,7 +26,9 @@ Connection::header_t Connection::readHeader()
 
 Connection::bytes_t Connection::readPayload(const header_t& header)
 {
-	std::vector<uint8_t> payloadBytes(header.payloadSz, 0);
+	std::vector<uint8_t> payloadBytes;
+	payloadBytes.resize(header.payloadSz);
+
 	recv(payloadBytes, header.payloadSz);
 	m_payloadValidator.validate(payloadBytes);
 
@@ -47,7 +51,14 @@ Response Connection::recvResponse()
 
 size_t Connection::recv(bytes_t& outBytes, size_t recvSz)
 {
-	return boost::asio::read(m_socket, boost::asio::buffer(outBytes.data(), recvSz));
+	size_t offset{ 0 };
+	while (offset < recvSz) {
+		auto readSz = std::min(recvSz, Config::RECV_SZ);
+		auto bytesRead = boost::asio::read(m_socket, boost::asio::buffer(outBytes.data() + offset, readSz));
+		offset += bytesRead;
+	}
+
+	return offset;
 }
 
 HeaderValidator::MapEntry::MapEntry(const std::vector<ResponseCodes>& codes, const std::vector<std::optional<uint32_t>>& expectedSzs)

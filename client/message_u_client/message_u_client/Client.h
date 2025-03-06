@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <optional>
 #include <filesystem>
 #include <boost/asio.hpp>
 
@@ -26,8 +27,8 @@ public:
 
 	struct ClientEntry {
 		std::string uuid{};
-		std::string pubKey{};
-		std::string symKey{};
+		std::optional<std::string> pubKey;
+		std::optional<std::string> symKey;
 	};
 
 	ClientState(const std::filesystem::path& path);
@@ -51,9 +52,9 @@ public:
 	const std::string& getUUID();
 	const std::string& getUUID(const std::string& username);
 	const std::string& getPubKey();
-	const std::string& getPubKey(const std::string& username);
+	const std::optional<std::string>& getPubKey(const std::string& username);
 	const std::string& getPrivKey();
-	const std::string& getSymKey(const std::string& username);
+	const std::optional<std::string>& getSymKey(const std::string& username);
 
 private:
 	ClientEntry& getClient(const std::string& username);

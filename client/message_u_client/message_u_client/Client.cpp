@@ -135,7 +135,11 @@ void Client::onCliSendTextMsg()
 	auto msgContent = getCLI().input("Enter your message: ");
 	auto symKey = getState().getSymKey(targetUsername);
 
-	AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.c_str()), symKey.size());
+	if (!symKey) {
+		throw std::logic_error("Error: Can't get the symmetric key of '" + targetUsername + "' it doesn't exist yet");
+	}
+
+	AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
 	auto encryptedMsg = aes.encrypt(msgContent.c_str(), msgContent.size());
 
 	Request req{ getState().getUUIDUnhexed(),
@@ -165,7 +169,11 @@ void Client::onCliSendSymKey()
 	auto targetUUID = getState().getUUID(targetUsername);
 	auto targetPubKey = getState().getPubKey(targetUsername);
 
-	if (getState().getSymKey(targetUsername).empty()) {
+	if (!targetPubKey) {
+		throw std::logic_error("Error: Can't get the public key of '" + targetUsername + "' it doesn't exist yet");
+	}
+
+	if (!getState().getSymKey(targetUsername)) {
 		unsigned char key[AESWrapper::DEFAULT_KEYLENGTH];
 		AESWrapper aes(AESWrapper::GenerateKey(key, AESWrapper::DEFAULT_KEYLENGTH), AESWrapper::DEFAULT_KEYLENGTH);
 		std::string symKey;
@@ -175,8 +183,8 @@ void Client::onCliSendSymKey()
 		getState().setSymKey(targetUsername, symKey);
 	}
 
-	auto symKey = getState().getSymKey(targetUsername);
-	auto rsaPub = RSAPublicWrapper(targetPubKey);
+	auto symKey = getState().getSymKey(targetUsername).value();
+	auto rsaPub = RSAPublicWrapper(targetPubKey.value());
 	auto encryptedSymKey = rsaPub.encrypt(symKey);
 
 	Request req{ getState().getUUIDUnhexed(),
@@ -349,7 +357,7 @@ const std::string& ClientState::getPubKey()
 	return m_store[ClientStateKeys::PUB_KEY];
 }
 
-const std::string& ClientState::getPubKey(const std::string& username)
+const std::optional<std::string>& ClientState::getPubKey(const std::string& username)
 {
 	return getClient(username).pubKey;
 }
@@ -359,7 +367,7 @@ const std::string& ClientState::getPrivKey()
 	return m_store[ClientStateKeys::PRIV_KEY];
 }
 
-const std::string& ClientState::getSymKey(const std::string& username)
+const std::optional<std::string>& ClientState::getSymKey(const std::string& username)
 {
 	return getClient(username).symKey;
 }

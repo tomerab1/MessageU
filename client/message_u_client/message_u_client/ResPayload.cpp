@@ -218,8 +218,13 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 		case MessageTypes::SEND_TXT: {
 			auto username = m_state.getNameByUUID(messages[i].senderId);
 			auto symKey = m_state.getSymKey(username);
+
+			if (!symKey) {
+				throw std::logic_error("Error: Can't get the symmetric key of '" + username + "' it doesn't exist yet");
+			}
+
 			auto msg = messages[i].content;
-			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.c_str()), symKey.size());
+			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
 
 			m_ss << aes.decrypt(msg.c_str(), msg.size());
 			break;
