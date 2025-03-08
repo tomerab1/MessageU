@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from config.config import Config
-from proto.request import MessageTypes
 from entities.message_entity import MessageEntity
 from exceptions.exceptions import InvalidPayloadResponseError, InvalidUUID
 from enum import Enum
@@ -26,7 +25,7 @@ class RegistrationOkPayload(ResPayload):
         super().__init__()
 
         if len(uuid) != RegistrationOkPayload._VALID_UUID_SZ:
-            raise InvalidUUID()
+            raise InvalidUUID("Invalid UUID length")
         self._uuid = uuid
 
     def size(self):
@@ -182,7 +181,7 @@ class Response:
 
     def __init__(self, code, payload):
         if not isinstance(payload, ResPayload) or not isinstance(code, ResponseCodes):
-            raise InvalidPayloadResponseError()
+            raise InvalidPayloadResponseError("Invalid payload or code")
 
         self._header = Response.Header(Config.VERSION, code, payload.size())
         self._payload = payload

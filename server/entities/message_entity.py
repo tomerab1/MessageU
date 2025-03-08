@@ -1,4 +1,6 @@
 class MessageEntity:
+    """A class to represent a message entity."""
+
     def __init__(self, uuid, from_client, to_client, msg_type, content):
         self._uuid = uuid
         self._from_client = from_client

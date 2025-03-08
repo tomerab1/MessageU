@@ -2,6 +2,8 @@ from datetime import datetime
 
 
 class ClientEntity:
+    """A class to represent a client entity."""
+
     def __init__(self, uuid, username, public_key):
         self._uuid = uuid
         self._username = username

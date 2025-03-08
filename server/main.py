@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class MessageUServer:
+    """Represents the server for the MessageU app"""
+
     def __init__(self, *, port, addr="localhost", backlog=100):
         self._sel = selectors.DefaultSelector()
         self._addr = addr
@@ -28,7 +30,8 @@ class MessageUServer:
         self._setup_controller()
 
     def serve(self):
-        print(f"Serving on port {self._port}...")
+        """ "Starts the server and listens for incoming connections"""
+        logger.info(f"Serving on port {self._port}...")
         while True:
             events = self._sel.select(timeout=0.1)
             for key, mask in events:
@@ -36,27 +39,33 @@ class MessageUServer:
                 cb(key.fileobj, mask)
 
     def _setup_controller(self):
+        """Initializes the controller with the required services"""
         self._controller = Controller(
             client_service=ClientService(RamRepository()),
             messages_service=MessagesService(RamRepository()),
         )
 
     def _setup(self):
+        """Sets up the server socket and registers the accept callback"""
         self._sock.bind((self._addr, self._port))
         self._sock.listen(self._backlog)
         self._sock.setblocking(False)
         self._sel.register(self._sock, selectors.EVENT_READ, self._accept)
 
     def _accept(self, sock, mask):
+        """Accepts incoming connections"""
         conn, addr = sock.accept()
         print(f"Accepted {conn} from {addr}")
         conn.setblocking(False)
         self._sel.register(conn, selectors.EVENT_READ, self._read)
 
     def _read(self, conn, mask):
+        """Reads incoming data from the connection"""
         try:
+            # We get the buffer of the current connection
             buffer = self._buffers.get(conn, b"")
 
+            # Read the data until there is no more data to read
             while True:
                 try:
                     chunk = conn.recv(Config.READ_SZ)
@@ -66,16 +75,21 @@ class MessageUServer:
                 except BlockingIOError:
                     break
 
+            # Update the buffer
             self._buffers[conn] = buffer
+            # If we dont have enough data to read the header, return
             if len(buffer) < Config.REQ_HEADER_SZ:
                 return
 
+            # Parse the header.
             header = Request.Header.from_bytes(buffer[: Request._HEADER_SZ])
             total_length = Config.REQ_HEADER_SZ + header.payload_sz
             if len(buffer) < total_length:
                 return
 
+            # Extract the data from the buffer
             data = buffer[:total_length]
+            # Advance the buffer (maybe there is more data)
             self._buffers[conn] = buffer[total_length:]
             self._controller.dispatch(conn, data)
         except Exception as e:
@@ -86,14 +100,17 @@ class MessageUServer:
             conn.close()
 
     def _install_sig_handler(self):
+        """Setup the sig handler for SIGINT"""
         signal.signal(signal.SIGINT, self._sig_handler)
 
     def _sig_handler(self, sig, frame):
+        """Handles the SIGINT signal by releasing resources and closing connections"""
         print("Ctrl+C pressed, exisitng gracefully")
         self.shutdown()
         sys.exit(0)
 
     def shutdown(self):
+        """Releases resources and closes connections"""
         self._sel.close()
         self._sock.close()
 

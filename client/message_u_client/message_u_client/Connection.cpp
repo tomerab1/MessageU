@@ -53,7 +53,7 @@ size_t Connection::recv(bytes_t& outBytes, size_t recvSz)
 {
 	size_t offset{ 0 };
 	while (offset < recvSz) {
-		auto readSz = std::min(recvSz, Config::RECV_SZ);
+		auto readSz = std::min(recvSz - offset, Config::CHUNK_SZ);
 		auto bytesRead = boost::asio::read(m_socket, boost::asio::buffer(outBytes.data() + offset, readSz));
 		offset += bytesRead;
 	}

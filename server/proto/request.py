@@ -11,14 +11,19 @@ from exceptions.exceptions import (
 
 
 class ReqPayload(ABC):
+    """Abstract class for request payloads"""
+
     @classmethod
     @abstractmethod
     def from_bytes(cls, data, data_len=0):
+        """Converts bytes to payload class"""
         pass
 
 
 @dataclass
 class RegistrationPayload(ReqPayload):
+    """Registration payload"""
+
     _PAYLOAD_FMT = "<255B160B"
 
     username: str
@@ -33,32 +38,36 @@ class RegistrationPayload(ReqPayload):
 
             return cls(username, key)
         except Exception as e:
-            print(e)
-            raise InvalidPayloadError()
+            raise InvalidPayloadError(e)
 
 
 @dataclass
 class ListUsersPayload(ReqPayload):
+    """Request payload to list users"""
+
     @classmethod
     def from_bytes(cls, data, data_len=0):
         if data or data_len != 0:
-            raise InvalidPayloadError()
+            raise InvalidPayloadError("Error: payload is not empty")
         return cls()
 
 
 @dataclass
 class PollMessagesPayload(ReqPayload):
+    """Request payload to poll messages"""
+
     @classmethod
     def from_bytes(cls, data, data_len=0):
         if data or data_len != 0:
-            raise InvalidPayloadError()
+            raise InvalidPayloadError("Error: payload is not empty")
         return cls()
 
 
 @dataclass
 class GetPublicKeyPayload(ReqPayload):
-    _PAYLOAD_FMT = "<16s"
+    """Request payload to get public key"""
 
+    _PAYLOAD_FMT = "<16s"
     user_id: str
 
     @classmethod
@@ -72,6 +81,8 @@ class GetPublicKeyPayload(ReqPayload):
 
 
 class MessageTypes(Enum):
+    """Enum for message types"""
+
     REQ_SYM_KEY = 1
     SEND_SYM_KEY = 2
     SEND_TXT = 3
@@ -79,6 +90,7 @@ class MessageTypes(Enum):
 
     @staticmethod
     def code_to_enum(code):
+        """Maps a code to a message type"""
         if code == 1:
             return MessageTypes.REQ_SYM_KEY
         elif code == 2:
@@ -93,6 +105,8 @@ class MessageTypes(Enum):
 
 @dataclass
 class SendMessagePayload(ReqPayload):
+    """Request payload to send a message"""
+
     _PAYLOAD_FMT = "<16sBI"
     _PAYLOAD_SZ = struct.calcsize(_PAYLOAD_FMT)
 
@@ -122,6 +136,8 @@ class SendMessagePayload(ReqPayload):
 
 
 class RequestCodes(Enum):
+    """Enum for request codes"""
+
     REGISTER = 600
     LIST_USERS = 601
     GET_PUB_KEY = 602
@@ -131,6 +147,7 @@ class RequestCodes(Enum):
 
     @staticmethod
     def code_to_enum(code):
+        """Maps a code to a request code"""
         if code == 600:
             return RequestCodes.REGISTER
         elif code == 601:
@@ -145,6 +162,8 @@ class RequestCodes(Enum):
 
 
 class Request:
+    """Main request class that bundles the header and payload"""
+
     _HEADER_FMT = "<16sBHI"
     _HEADER_SZ = struct.calcsize(_HEADER_FMT)
     _PAYLOAD_CLASSES = {}
@@ -163,9 +182,13 @@ class Request:
             return Request.Header(client_id, version, code, payload_size)
 
     def __init__(self, packet):
+        # Construct the header
         self._header = Request.Header.from_bytes(packet)
 
+        # Extract the request code
         code = RequestCodes.code_to_enum(self._header.code)
+
+        # Get the appropriate 'constructor'
         payload_cls = Request._PAYLOAD_CLASSES.get(code)
         if payload_cls is None:
             raise InvalidCodeError(f"Error: request '{code}' is invalid")
@@ -173,15 +196,19 @@ class Request:
         raw_payload = packet[
             Request._HEADER_SZ : Request._HEADER_SZ + self._header.payload_sz
         ]
+        # Construct the payload
         self._payload = payload_cls.from_bytes(raw_payload, self._header.payload_sz)
 
     def get_header(self):
+        """Gets the header"""
         return self._header
 
     def get_payload(self):
+        """Gets the payload"""
         return self._payload
 
 
+# Register the payload classes to the appropriate request codes (maps the request code to the correct payload class)
 Request._PAYLOAD_CLASSES[RequestCodes.REGISTER] = RegistrationPayload
 Request._PAYLOAD_CLASSES[RequestCodes.LIST_USERS] = ListUsersPayload
 Request._PAYLOAD_CLASSES[RequestCodes.GET_PUB_KEY] = GetPublicKeyPayload

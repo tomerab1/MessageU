@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <memory>
 #include <optional>
+#include <functional>
+#include <filesystem>
 #include <boost/asio.hpp>
 
 #include "Response.h"
@@ -43,12 +45,17 @@ public:
 	using io_ctx_t = boost::asio::io_context;
 	using resolver_t = boost::asio::ip::tcp::resolver;
 	using socket_t = boost::asio::ip::tcp::socket;
+	using stream_handler_t = std::function<void(const std::string&)>;
 	using header_t = Response::Header;
 	using bytes_t = std::vector<uint8_t>;
 
 	Connection(io_ctx_t& ctx, const std::string& addr, const std::string& port);
+	
 	void send(Request& req);
 	Response recvResponse();
+
+	void sendFile(std::string chunk);
+	void recvFile(stream_handler_t onChunksReady);
 
 private:
 	header_t readHeader();
