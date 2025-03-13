@@ -1,6 +1,9 @@
+from math import log
 from config.config import Config
 from controller.controller import Controller
 from repository.ram_repository import RamRepository
+from repository.client_repository import ClientRepository
+from repository.message_repository import MessageRepository
 from services.client_service import ClientService
 from services.message_service import MessagesService
 from proto.request import Request
@@ -10,6 +13,10 @@ import socket
 import sys
 import signal
 import logging
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +48,8 @@ class MessageUServer:
     def _setup_controller(self):
         """Initializes the controller with the required services"""
         self._controller = Controller(
-            client_service=ClientService(RamRepository()),
-            messages_service=MessagesService(RamRepository()),
+            client_service=ClientService(ClientRepository("defensive.db")),
+            messages_service=MessagesService(MessageRepository("defensive.db")),
         )
 
     def _setup(self):
@@ -105,7 +112,7 @@ class MessageUServer:
 
     def _sig_handler(self, sig, frame):
         """Handles the SIGINT signal by releasing resources and closing connections"""
-        print("Ctrl+C pressed, exisitng gracefully")
+        logger.info("Ctrl+C pressed, exisitng gracefully")
         self.shutdown()
         sys.exit(0)
 
@@ -121,7 +128,8 @@ def main():
         server = MessageUServer(port=Config.PORT)
         server.serve()
     except Exception as e:
-        print(e)
+        logger.exception(e)
+        logger.error(repr(e))
 
 
 if __name__ == "__main__":

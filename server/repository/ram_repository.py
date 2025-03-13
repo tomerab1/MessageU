@@ -14,3 +14,6 @@ class RamRepository(Repository):
 
     def save(self, id, obj):
         self._data[id] = obj
+
+    def delete(self, id):
+        raise NotImplementedError

@@ -4,11 +4,13 @@ from datetime import datetime
 class ClientEntity:
     """A class to represent a client entity."""
 
-    def __init__(self, uuid, username, public_key):
+    def __init__(
+        self, uuid: bytes, username: str, public_key: str, last_seen: datetime = None
+    ):
         self._uuid = uuid
         self._username = username
         self._public_key = public_key
-        self._last_seen = datetime.now()
+        self._last_seen = last_seen or datetime.now()
 
     def get_uuid(self):
         return self._uuid
@@ -35,4 +37,5 @@ class ClientEntity:
         self._last_seen = last_seen
 
     def __repr__(self):
-        return f"Client({self._uuid}, {self._username}, {self._public_key})"
+        uuid_hex = self._uuid.hex()
+        return f"ClientEntity({uuid_hex}, {self._username}, {self._public_key}, {self._last_seen})"

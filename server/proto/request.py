@@ -25,7 +25,6 @@ class RegistrationPayload(ReqPayload):
     """Registration payload"""
 
     _PAYLOAD_FMT = "<255B160B"
-
     username: str
     public_key: str
 

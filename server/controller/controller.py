@@ -43,7 +43,7 @@ class Controller:
             payload = ctx.get_req().get_payload()
             self._hanlders[code](ctx, payload)
         except Exception as e:
-            logger.warning(e)
+            logger.exception(e)
             conn.send(ResponseFactory.create_response(ResponseCodes.ERROR).to_bytes())
 
     def _register(
@@ -62,6 +62,7 @@ class Controller:
         """Router handler for fetching all registered users except for the user who made the request"""
         client_id = ctx.get_req().get_header().client_id
         users_list = self._client_service.find_all()
+        print(users_list)
         users_list = list(filter(lambda x: x.get_uuid() != client_id, users_list))
         ctx.write(
             ResponseFactory.create_response(
@@ -91,7 +92,7 @@ class Controller:
             ResponseFactory.create_response(
                 ResponseCodes.MSG_SENT,
                 msg.get_to_client(),
-                msg.get_uuid(),
+                msg.get_id(),
             )
         )
 

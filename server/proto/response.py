@@ -8,16 +8,22 @@ import struct
 
 
 class ResPayload(ABC):
+    """Abstract class for response payloads"""
+
     @abstractmethod
     def size(self):
+        """Gets the size of the payload"""
         pass
 
     @abstractmethod
     def to_bytes(self):
+        """Converts the payload to bytes"""
         pass
 
 
 class RegistrationOkPayload(ResPayload):
+    """Response payload for registration success"""
+
     _RES_FMT = "<16s"
     _VALID_UUID_SZ = 16
 
@@ -37,6 +43,8 @@ class RegistrationOkPayload(ResPayload):
 
 
 class ListUsersPayload(ResPayload):
+    """Response payload for listing users"""
+
     _RES_FMT = "<16s255s"
     _FMT_SZ = struct.calcsize(_RES_FMT)
 
@@ -61,6 +69,8 @@ class ListUsersPayload(ResPayload):
 
 
 class PublicKeyPayload(ResPayload):
+    """Response payload for public key"""
+
     _RES_FMT = "<16s160s"
     _FMT_SZ = struct.calcsize(_RES_FMT)
 
@@ -81,6 +91,8 @@ class PublicKeyPayload(ResPayload):
 
 
 class MessageSentPayload(ResPayload):
+    """Response payload for message sent from a client to another client"""
+
     _RES_FMT = "<16sI"
     _FMT_SZ = struct.calcsize(_RES_FMT)
 
@@ -93,12 +105,16 @@ class MessageSentPayload(ResPayload):
         return MessageSentPayload._FMT_SZ
 
     def to_bytes(self):
+        print(self._dst_client_id)
+        print(self._msg_id)
         return struct.pack(
             MessageSentPayload._RES_FMT, self._dst_client_id, self._msg_id
         )
 
 
 class PollMessagePayload(ResPayload):
+    """Response payload for polling messages"""
+
     _RES_FMT = "<16sIBI"
     _FMT_SZ = struct.calcsize(_RES_FMT)
 
@@ -118,7 +134,7 @@ class PollMessagePayload(ResPayload):
                 struct.pack(
                     PollMessagePayload._RES_FMT,
                     msg.get_from_client(),
-                    msg.get_uuid(),
+                    msg.get_id(),
                     msg.get_msg_type().value,
                     len(msg.get_content()),
                 )
@@ -129,6 +145,8 @@ class PollMessagePayload(ResPayload):
 
 
 class ErrorResponse(ResPayload):
+    """Response payload for error"""
+
     def __init__(self):
         super().__init__()
 
@@ -140,6 +158,8 @@ class ErrorResponse(ResPayload):
 
 
 class ResponseCodes(Enum):
+    """Response codes"""
+
     REG_OK = 2100
     LIST_USRS = 2101
     PUB_KEY = 2102
@@ -163,8 +183,12 @@ class ResponseCodes(Enum):
 
 
 class Response:
+    """Response class"""
+
     @dataclass
     class Header:
+        """Header class for the response"""
+
         _HEADER_FMT = "<BHI"
 
         version: int
@@ -183,14 +207,20 @@ class Response:
         if not isinstance(payload, ResPayload) or not isinstance(code, ResponseCodes):
             raise InvalidPayloadResponseError("Invalid payload or code")
 
+        # Create the header
         self._header = Response.Header(Config.VERSION, code, payload.size())
+        # Store the payload
         self._payload = payload
 
     def to_bytes(self):
+        """Convert the header and payload to bytes"""
         return self._header.to_bytes() + self._payload.to_bytes()
 
 
 class ResponseFactory:
+    """Factory class for creating responses"""
+
+    # Builders for the different response types
     _builders = {
         ResponseCodes.REG_OK: lambda uuid: RegistrationOkPayload(uuid),
         ResponseCodes.LIST_USRS: lambda users_list: ListUsersPayload(users_list),
@@ -206,10 +236,14 @@ class ResponseFactory:
 
     @staticmethod
     def create_response(code: ResponseCodes, *args, **kwargs) -> Response:
+        """Creates a response based on the code and the arguments"""
+
+        # Gets the builder for the response code
         builder = ResponseFactory._builders.get(code)
         if builder is None:
             raise InvalidPayloadResponseError(
                 f"No builder found for response code {code}"
             )
+        # Creates the payload
         payload = builder(*args, **kwargs)
         return Response(code, payload)

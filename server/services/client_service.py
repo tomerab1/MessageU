@@ -6,27 +6,37 @@ import uuid
 
 
 class ClientService:
+    """Service layer for the client entity"""
+
     def __init__(self, repo: Repository):
+        # inject the repository
         self._client_repo = repo
 
-    def find_by_id(self, uuid) -> ClientEntity:
-        (client, *_) = self._client_repo.find(
-            filter_cb=lambda record: uuid == record[0]
-        ).values()
-
-        return client
+    def find_by_id(self, client_uuid: bytes) -> ClientEntity:
+        """Find a client by its UUID"""
+        result = self._client_repo.find(
+            filter_cb=lambda user: client_uuid == user.get_uuid()
+        )
+        if not result:
+            return None
+        return next(iter(result))
 
     def find_all(self):
+        """Find all clients"""
         return self._client_repo.find_all()
 
     def create(self, payload: RegistrationPayload):
+        """Create a new client"""
+
+        # if the username already exists, raise an exception
         if self._client_repo.find(
-            filter_cb=lambda record: payload.username == record[1].get_username()
+            filter_cb=lambda user: payload.username == user.get_username()
         ):
             raise UniqueKeyViolationException(
-                f"Error: '{payload.username}' already exist"
+                f"Error: '{payload.username}' already exists"
             )
 
-        user = ClientEntity(uuid.uuid4().bytes, payload.username, payload.public_key)
-        self._client_repo.save(user.get_uuid(), user)
+        new_uuid = uuid.uuid4().bytes
+        user = ClientEntity(new_uuid, payload.username, payload.public_key)
+        self._client_repo.save(new_uuid, user)
         return user

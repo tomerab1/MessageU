@@ -6,22 +6,19 @@ from repository.repository import Repository
 class MessagesService:
     def __init__(self, repo: Repository):
         self._messages_repo = repo
-        self._count = 0
 
     def create(self, sender_id, payload: SendMessagePayload) -> MessageEntity:
         msg = MessageEntity(
-            self._count,
+            None,
             sender_id,
             payload.client_id,
             payload.msg_type,
             payload.content,
         )
-        self._count += 1
-        self._messages_repo.save(msg.get_uuid(), msg)
+        msg_id = self._messages_repo.save(None, msg)
+        msg.set_id(msg_id)
         return msg
 
     def poll_msgs(self, client_id) -> list[MessageEntity]:
-        msgs = self._messages_repo.find(
-            lambda record: client_id == record[1].get_to_client()
-        )
-        return list(msgs.values())
+        self._messages_repo.find(lambda msg: client_id == msg.get_to_client())
+        return self._messages_repo.find(lambda msg: client_id == msg.get_to_client())

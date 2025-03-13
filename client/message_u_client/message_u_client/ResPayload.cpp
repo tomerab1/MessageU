@@ -220,7 +220,8 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 			auto symKey = m_state.getSymKey(username);
 
 			if (!symKey) {
-				throw std::logic_error("Error: Can't get the symmetric key of '" + username + "' it doesn't exist yet");
+				m_ss << "can’t decrypt message";
+				break;
 			}
 
 			auto msg = messages[i].content;
