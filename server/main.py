@@ -123,7 +123,7 @@ class MessageUServer:
 def main():
     try:
         Config.load()
-        server = MessageUServer(port=Config.PORT)
+        server = MessageUServer(port=1234)
         server.serve()
     except Exception as e:
         logger.exception(e)

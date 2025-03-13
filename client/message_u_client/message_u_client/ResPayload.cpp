@@ -10,6 +10,9 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <fstream>
+#include <filesystem>
+#include <chrono>
 #include <boost/algorithm/hex.hpp>
 
 ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes code)
@@ -26,7 +29,7 @@ ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes 
 		return std::make_unique<MessageSentResPayload>(bytes);
 	case ResponseCodes::POLL_MSGS:
 		return std::make_unique<PollMessageResPayload>(bytes);
-	case ResponseCodes::ERR: 
+	case ResponseCodes::ERR:
 		return std::make_unique<ErrorPayload>();
 	}
 
@@ -116,7 +119,7 @@ MessageSentResPayload::MessageSentResPayload(const bytes_t& bytes)
 {
 	m_entry.targetId.resize(Config::CLIENT_ID_SZ);
 	std::copy(bytes.begin(), bytes.begin() + Config::CLIENT_ID_SZ, m_entry.targetId.begin());
-	
+
 	size_t offset{ Config::CLIENT_ID_SZ };
 	m_entry.msgId = Utils::deserializeTrivialType<uint32_t>(bytes, offset);
 }
@@ -169,7 +172,7 @@ void ErrorPayload::accept(Visitor& visitor)
 }
 
 ToStringVisitor::ToStringVisitor(ClientState& state)
-	: m_state{state}
+	: m_state{ state }
 {
 }
 
@@ -213,7 +216,7 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 	for (size_t i = 0; i < messages.size(); i++) {
 		m_ss << "From: " << m_state.getNameByUUID(messages[i].senderId) << '\n';
 		m_ss << "Content:\n";
-		
+
 		switch (messages[i].msgType) {
 		case MessageTypes::SEND_TXT: {
 			auto username = m_state.getNameByUUID(messages[i].senderId);
@@ -236,9 +239,37 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 		case MessageTypes::SEND_SYM_KEY:
 			m_ss << "Symmetric key received";
 			break;
-		case MessageTypes::SEND_FILE:
-			m_ss << "FILE_PLACEHOLDER";
+		case MessageTypes::SEND_FILE: {
+			auto username = m_state.getNameByUUID(messages[i].senderId);
+			auto symKey = m_state.getSymKey(username);
+
+			if (!symKey) {
+				m_ss << "can’t decrypt message";
+				break;
+			}
+
+			auto now = std::chrono::system_clock::now();
+			auto timeT = std::chrono::system_clock::to_time_t(now);
+			std::stringstream filename_ss;
+			filename_ss << "file_" << messages[i].msgId << "_" << timeT;
+			std::string filename = filename_ss.str();
+
+			auto path = std::filesystem::temp_directory_path() / filename;
+			std::ofstream file{ path, std::ios::binary };
+
+			if (!file.is_open()) {
+				throw std::runtime_error("Error: Could not open '" + path.string() + "'");
+			}
+
+			const auto& msg = messages[i].content;
+			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
+
+			file << aes.decrypt(msg.c_str(), msg.size());
+			file.close();
+
+			m_ss << "File saved to: " << path;
 			break;
+		}
 		default:
 			break;
 		}
@@ -253,7 +284,7 @@ void ToStringVisitor::visit(const ErrorPayload& payload)
 }
 
 ClientStateVisitor::ClientStateVisitor(ClientState& state)
-	: m_state{state}
+	: m_state{ state }
 {
 }
 
@@ -282,8 +313,8 @@ void ClientStateVisitor::visit(const PollMessageResPayload& payload)
 			auto username = m_state.getNameByUUID(messages[i].senderId);
 
 			m_state.setSymKey(username, rsaprive.decrypt(messages[i].content));
+			break;
 		}
-		break;
 		default:
 			break;
 		}

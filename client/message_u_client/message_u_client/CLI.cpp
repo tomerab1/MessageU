@@ -65,15 +65,6 @@ void CLI::addHandler(CLIMenuOpts opt, const std::string& msg, handler_t handler)
 	m_handlers.insert({ Utils::EnumToUint16(opt), CLIOpt {msg, handler} });
 }
 
-void CLI::clearScreen()
-{
-#if defined(WIN32) || defined(_WIN32)
-	system("cls");
-#else
-	system("clear");
-#endif
-}
-
 std::string CLI::input(const std::string& prompt)
 {
 	std::cout << prompt << '\n';

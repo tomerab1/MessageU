@@ -50,45 +50,6 @@ Response Connection::recvResponse()
 	return Response(header, payloadBytes);
 }
 
-void Connection::sendFile(Request::Stream& stream, stream_handler_t onChunkReady)
-{
-	auto headerBytes = stream.header.toBytes();
-	boost::asio::write(m_socket, boost::asio::buffer(headerBytes));
-
-	while (true)
-	{
-		auto chunk = stream.payload->toBytes();
-		if (chunk.empty())
-			break;
-
-		auto encryptedChunk = onChunkReady(reinterpret_cast<const char*>(chunk.data()));
-		boost::asio::write(m_socket, boost::asio::buffer(chunk));
-	}
-}
-
-void Connection::recvFile(std::filesystem::path path, stream_handler_t onChunkReady)
-{
-	auto header = readHeader();
-	std::ofstream file{ path, std::ios::binary };
-	size_t offset{ 0 };
-
-	while (offset < header.payloadSz) {
-		size_t recvSz = std::min(Config::CHUNK_SZ, header.payloadSz - offset);
-		std::vector<uint8_t> payloadBytes;
-		payloadBytes.resize(recvSz);
-
-		auto bytesReceived = recv(payloadBytes, recvSz);
-		if (bytesReceived == 0) {
-			throw std::runtime_error("Error: Connection error while receiving file");
-		}
-
-		auto decryptedBytes = onChunkReady(reinterpret_cast<const char*>(payloadBytes.data()));
-		file.write(decryptedBytes.data(), decryptedBytes.size());
-
-		offset += bytesReceived;
-	}
-}
-
 size_t Connection::recv(bytes_t& outBytes, size_t recvSz)
 {
 	size_t offset{ 0 };

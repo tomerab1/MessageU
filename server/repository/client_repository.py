@@ -3,12 +3,6 @@ from repository.repository import Repository
 from entities.client_entity import ClientEntity
 
 
-def auto_last_seen(func):
-    def wrapper(self, *args, **kwargs):
-        self._client_service.update_last_seen(args[0])
-        return func(self, *args, **kwargs)
-
-
 class ClientRepository(Repository):
     __tablename__ = "clients"
 

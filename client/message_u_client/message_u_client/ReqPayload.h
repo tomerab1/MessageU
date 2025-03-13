@@ -63,16 +63,6 @@ private:
 	std::string m_msg;
 };
 
-class SendFileReqPayload : public SendMessageReqPayload {
-public:
-	SendFileReqPayload(const std::string& targetId, MessageTypes type, uint32_t fileSz, const std::string& filePath);
-
-	bytes_t toBytes() override;
-
-private:
-	std::ifstream m_file;
-};
-
 class PollMessagesReqPayload : public ReqPayload
 {
 public:

@@ -39,15 +39,9 @@ public:
 		bytes_t toBytes();
 	};
 
-	struct Stream {
-		Header header;
-		payload_t payload;
-	};
-
 	explicit Request(const std::string& id, RequestCodes code, payload_t payload);
 
 	bytes_t toBytes();
-	Stream toStream();
 	RequestCodes getCode();
 	
 	~Request();

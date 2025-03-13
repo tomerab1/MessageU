@@ -35,7 +35,6 @@ public:
 	};
 
 	void addHandler(CLIMenuOpts opt, const std::string& msg, handler_t handler);
-	void clearScreen();
 	std::string input(const std::string& prompt="");
 	void run();
 

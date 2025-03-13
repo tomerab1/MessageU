@@ -94,26 +94,3 @@ uint32_t PollMessagesReqPayload::getSize()
 {
 	return 0;
 }
-
-SendFileReqPayload::SendFileReqPayload(const std::string& targetId, MessageTypes type, uint32_t fileSz, const std::string& filePath)
-	: SendMessageReqPayload{ targetId, type, fileSz, filePath }, m_file{filePath}
-{
-	if (!m_file.is_open()) {
-		throw std::runtime_error("Error: Could not open '" + filePath + "'");
-	}
-}
-
-SendFileReqPayload::bytes_t SendFileReqPayload::toBytes()
-{
-	bytes_t buff;
-	buff.resize(Config::CHUNK_SZ);
-
-	m_file.read(reinterpret_cast<char*>(buff.data()), Config::CHUNK_SZ);
-	auto bytesRead = m_file.gcount();
-
-	if (!bytesRead) {
-		return bytes_t();
-	}
-
-	return buff;
-}

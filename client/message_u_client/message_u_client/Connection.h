@@ -50,9 +50,6 @@ public:
 	void send(Request& req);
 	Response recvResponse();
 
-	void sendFile(Request::Stream& stream, stream_handler_t onChunkReady);
-	void recvFile(std::filesystem::path, stream_handler_t onChunkReady);
-
 private:
 	header_t readHeader();
 	bytes_t readPayload(const header_t& header);

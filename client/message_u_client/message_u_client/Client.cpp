@@ -201,29 +201,27 @@ void Client::onCliSendFile()
 {
 	auto targetUsername = getCLI().input("Enter a username: ");
 	auto targetUUID = getState().getUUID(targetUsername);
-	auto targetSymKey = getState().getSymKey(targetUsername);
+	auto path = getCLI().input("Enter file path: ");
+	auto symKey = getState().getSymKey(targetUsername);
 
-	if (!targetSymKey) {
-		throw std::logic_error("Error: Can't get the sym key of '" + targetUsername + "' it doesn't exist yet");
+	if (!symKey) {
+		throw std::logic_error("Error: Can't get the symmetric key of '" + targetUsername + "' it doesn't exist yet");
 	}
 
-	auto filePath = getCLI().input("Enter a file path: ");
+	std::ifstream file{ path, std::ios::binary | std::ios::beg };
+	std::stringstream ss;
 
-	if (!std::filesystem::exists(filePath)) {
-		throw std::logic_error("Error: '" + filePath + "' does not exist");
-	}
+	ss << file.rdbuf();
+	auto msgContent = ss.str();
+
+	AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
+	auto encryptedMsg = aes.encrypt(msgContent.c_str(), msgContent.size());
 
 	Request req{ getState().getUUIDUnhexed(),
-		RequestCodes::SEND_MSG,
-		std::make_unique<SendFileReqPayload>(targetUUID, MessageTypes::SEND_FILE, std::filesystem::file_size(filePath), filePath)
-	};
+			RequestCodes::SEND_MSG,
+			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_FILE, encryptedMsg.size(), encryptedMsg) };
 
-	auto stream = req.toStream();
-	getConn().sendFile(stream, [this, &targetUsername, &targetSymKey](const std::string& chunk) {
-		AESWrapper aes(reinterpret_cast<const uint8_t*>(targetSymKey.value().c_str()), targetSymKey.value().size());
-		return aes.encrypt(chunk.c_str(), chunk.size());
-	});
-
+	getConn().send(req);
 	getConn().recvResponse();
 }
 
