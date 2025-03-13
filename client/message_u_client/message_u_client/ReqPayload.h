@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <fstream>
 #include <string>
 
 enum class MessageTypes : uint8_t;
@@ -60,6 +61,16 @@ private:
 	MessageTypes m_type;
 	uint32_t m_msgSz;
 	std::string m_msg;
+};
+
+class SendFileReqPayload : public SendMessageReqPayload {
+public:
+	SendFileReqPayload(const std::string& targetId, MessageTypes type, uint32_t fileSz, const std::string& filePath);
+
+	bytes_t toBytes() override;
+
+private:
+	std::ifstream m_file;
 };
 
 class PollMessagesReqPayload : public ReqPayload

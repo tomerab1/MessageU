@@ -3,6 +3,12 @@ from repository.repository import Repository
 from entities.client_entity import ClientEntity
 
 
+def auto_last_seen(func):
+    def wrapper(self, *args, **kwargs):
+        self._client_service.update_last_seen(args[0])
+        return func(self, *args, **kwargs)
+
+
 class ClientRepository(Repository):
     __tablename__ = "clients"
 
@@ -21,7 +27,8 @@ class ClientRepository(Repository):
                     UserName CHAR(255) UNIQUE NOT NULL,
                     PublicKey CHAR(160) NOT NULL,
                     LastSeen DATETIME DEFAULT CURRENT_TIMESTAMP
-                )"""
+                );
+                """
             )
             conn.commit()
 
@@ -29,7 +36,10 @@ class ClientRepository(Repository):
         with sqlite3.connect(self._db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT ID, UserName, PublicKey, LastSeen FROM clients")
-            return [ClientEntity(row[0], row[1], row[2]) for row in cursor.fetchall()]
+            return [
+                ClientEntity(row[0], row[1], row[2], row[3])
+                for row in cursor.fetchall()
+            ]
 
     def find(self, filter_cb):
         return list(filter(filter_cb, self.find_all()))
@@ -52,6 +62,15 @@ class ClientRepository(Repository):
                     obj.get_public_key(),
                     obj.get_last_seen().isoformat(),
                 ),
+            )
+            conn.commit()
+
+    def update_last_seen(self, uuid):
+        with sqlite3.connect(self._db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                f"UPDATE {self.__tablename__} SET LastSeen = CURRENT_TIMESTAMP WHERE ID = ?",
+                (uuid,),
             )
             conn.commit()
 

@@ -5,7 +5,8 @@ from dataclasses import dataclass
 class Config:
     _PORT_PATH = "myport.info"
     PORT = 1357
-    VERSION = 1
+    VERSION = 2
+    DATABASE_PATH = "defensive.db"
     REQ_HEADER_SZ = 23
     READ_SZ = 1024
 

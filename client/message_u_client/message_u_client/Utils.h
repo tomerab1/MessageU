@@ -32,6 +32,5 @@ namespace Utils {
 	}
 
 	int32_t strToInt(std::string& str);
-	
 	void trimStr(std::string& str);
 }

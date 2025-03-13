@@ -94,6 +94,7 @@ private:
 	void onCliSendTextMsg();
 	void onCliReqSymKey();
 	void onCliSendSymKey();
+	void onCliSendFile();
 
 private:
 	cli_t m_cli;

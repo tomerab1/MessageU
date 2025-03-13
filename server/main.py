@@ -46,8 +46,8 @@ class MessageUServer:
     def _setup_controller(self):
         """Initializes the controller with the required services"""
         self._controller = Controller(
-            client_service=ClientService(ClientRepository("defensive.db")),
-            messages_service=MessagesService(MessageRepository("defensive.db")),
+            client_service=ClientService(ClientRepository(Config.DATABASE_PATH)),
+            messages_service=MessagesService(MessageRepository(Config.DATABASE_PATH)),
         )
 
     def _setup(self):

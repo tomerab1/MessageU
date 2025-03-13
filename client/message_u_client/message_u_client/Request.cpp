@@ -49,6 +49,11 @@ Request::bytes_t Request::toBytes()
 	return bytes;
 }
 
+Request::Stream Request::toStream()
+{
+	return { m_header, std::move(m_payload) };
+}
+
 RequestCodes Request::getCode()
 {
 	return m_header.code;

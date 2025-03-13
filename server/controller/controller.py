@@ -61,7 +61,7 @@ class Controller:
     def _list_users(self, ctx: Context, _) -> Response:
         """Router handler for fetching all registered users except for the user who made the request"""
         client_id = ctx.get_req().get_header().client_id
-        users_list = self._client_service.find_all()
+        users_list = self._client_service.find_all(client_id)
         print(users_list)
         users_list = list(filter(lambda x: x.get_uuid() != client_id, users_list))
         ctx.write(

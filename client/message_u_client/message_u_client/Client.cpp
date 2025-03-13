@@ -11,20 +11,15 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <filesystem>
 #include <boost/algorithm/hex.hpp>
 
 Client::Client(context_t& ctx, const std::string& addr, const std::string& port)
 	: m_cli{ std::make_unique<CLI>("MessageU client at your service", "?") },
-	m_conn{ std::make_unique<Connection>(ctx, addr, port)},
-	m_state{Config::ME_DOT_INFO_PATH}
+	m_conn{ std::make_unique<Connection>(ctx, addr, port) },
+	m_state{ Config::ME_DOT_INFO_PATH }
 {
-	if (!m_state.isInitialized()) {
-		getCLI().addHandler(CLIMenuOpts::REGISTER, "Register", std::bind(&Client::onCliRegister, this));
-		getCLI().addHandler(CLIMenuOpts::EXIT, "Exit client", []() {});
-	}
-	else {
-		setupCliHandlers();
-	}
+	setupCliHandlers();
 }
 
 void Client::run()
@@ -42,12 +37,18 @@ void Client::setupCliHandlers()
 	getCLI().addHandler(CLIMenuOpts::SEND_TEXT, "Send a text message", std::bind(&Client::onCliSendTextMsg, this));
 	getCLI().addHandler(CLIMenuOpts::REQ_SYM_KEY, "Send a request for symmetric key", std::bind(&Client::onCliReqSymKey, this));
 	getCLI().addHandler(CLIMenuOpts::SEND_SYM_KEY, "Send your symmetric key", std::bind(&Client::onCliSendSymKey, this));
+	getCLI().addHandler(CLIMenuOpts::SEND_FILE, "Send a file", std::bind(&Client::onCliSendFile, this));
 	getCLI().addHandler(CLIMenuOpts::EXIT, "Exit client", []() {});
 }
 
 void Client::onCliRegister()
 {
 	auto username = getCLI().input("Enter a username: ");
+
+	if (username.length() >= Config::NAME_MAX_SZ) {
+		throw std::logic_error("Error: Name length is '" + std::to_string(username.length()) + "' but the max is '" + std::to_string(Config::NAME_MAX_SZ) + "'");
+	}
+
 	RSAPrivateWrapper rsapriv;
 	std::string pubKey = rsapriv.getPublicKey();
 
@@ -71,7 +72,8 @@ void Client::onCliRegister()
 		getState().saveToFile(Config::ME_DOT_INFO_PATH);
 
 		setupCliHandlers();
-	} else {
+	}
+	else {
 		std::cout << payloadVisitor->getString() << "\n\n";
 	}
 }
@@ -144,7 +146,7 @@ void Client::onCliSendTextMsg()
 
 	Request req{ getState().getUUIDUnhexed(),
 			RequestCodes::SEND_MSG,
-			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_TXT, encryptedMsg.size(), encryptedMsg)};
+			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::SEND_TXT, encryptedMsg.size(), encryptedMsg) };
 
 	getConn().send(req);
 	getConn().recvResponse();
@@ -157,7 +159,7 @@ void Client::onCliReqSymKey()
 
 	Request req{ getState().getUUIDUnhexed(),
 			RequestCodes::SEND_MSG,
-			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::GET_SYM_KEY, 0, "")};
+			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::GET_SYM_KEY, 0, "") };
 
 	getConn().send(req);
 	getConn().recvResponse();
@@ -195,6 +197,36 @@ void Client::onCliSendSymKey()
 	getConn().recvResponse();
 }
 
+void Client::onCliSendFile()
+{
+	auto targetUsername = getCLI().input("Enter a username: ");
+	auto targetUUID = getState().getUUID(targetUsername);
+	auto targetSymKey = getState().getSymKey(targetUsername);
+
+	if (!targetSymKey) {
+		throw std::logic_error("Error: Can't get the sym key of '" + targetUsername + "' it doesn't exist yet");
+	}
+
+	auto filePath = getCLI().input("Enter a file path: ");
+
+	if (!std::filesystem::exists(filePath)) {
+		throw std::logic_error("Error: '" + filePath + "' does not exist");
+	}
+
+	Request req{ getState().getUUIDUnhexed(),
+		RequestCodes::SEND_MSG,
+		std::make_unique<SendFileReqPayload>(targetUUID, MessageTypes::SEND_FILE, std::filesystem::file_size(filePath), filePath)
+	};
+
+	auto stream = req.toStream();
+	getConn().sendFile(stream, [this, &targetUsername, &targetSymKey](const std::string& chunk) {
+		AESWrapper aes(reinterpret_cast<const uint8_t*>(targetSymKey.value().c_str()), targetSymKey.value().size());
+		return aes.encrypt(chunk.c_str(), chunk.size());
+	});
+
+	getConn().recvResponse();
+}
+
 CLI& Client::getCLI()
 {
 	return *m_cli;
@@ -223,7 +255,7 @@ void ClientState::loadFromFile(const std::filesystem::path& path)
 {
 	m_isInitialized = true;
 	std::ifstream in{ path };
-	
+
 	if (!in.is_open()) {
 		throw std::runtime_error("Error: Failed to load client state from '" + path.filename().string() + "'");
 	}

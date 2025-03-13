@@ -9,11 +9,7 @@
 #include <boost/asio.hpp>
 
 #include "Response.h"
-
-enum class RequestCodes : uint16_t;
-
-class ResPayload;
-class Request;
+#include "Request.h"
 
 class HeaderValidator {
 public:
@@ -45,7 +41,7 @@ public:
 	using io_ctx_t = boost::asio::io_context;
 	using resolver_t = boost::asio::ip::tcp::resolver;
 	using socket_t = boost::asio::ip::tcp::socket;
-	using stream_handler_t = std::function<void(const std::string&)>;
+	using stream_handler_t = std::function<std::string(const std::string&)>;
 	using header_t = Response::Header;
 	using bytes_t = std::vector<uint8_t>;
 
@@ -54,8 +50,8 @@ public:
 	void send(Request& req);
 	Response recvResponse();
 
-	void sendFile(std::string chunk);
-	void recvFile(stream_handler_t onChunksReady);
+	void sendFile(Request::Stream& stream, stream_handler_t onChunkReady);
+	void recvFile(std::filesystem::path, stream_handler_t onChunkReady);
 
 private:
 	header_t readHeader();

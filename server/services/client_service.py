@@ -12,17 +12,17 @@ class ClientService:
         # inject the repository
         self._client_repo = repo
 
-    def find_by_id(self, client_uuid: bytes) -> ClientEntity:
+    def find_by_id(self, uuid: bytes) -> ClientEntity:
         """Find a client by its UUID"""
-        result = self._client_repo.find(
-            filter_cb=lambda user: client_uuid == user.get_uuid()
-        )
+        self._client_repo.update_last_seen(uuid)
+        result = self._client_repo.find(filter_cb=lambda user: uuid == user.get_uuid())
         if not result:
             return None
         return next(iter(result))
 
-    def find_all(self):
+    def find_all(self, uuid: bytes):
         """Find all clients"""
+        self._client_repo.update_last_seen(uuid)
         return self._client_repo.find_all()
 
     def create(self, payload: RegistrationPayload):

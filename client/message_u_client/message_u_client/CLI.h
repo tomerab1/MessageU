@@ -12,6 +12,7 @@ enum class CLIMenuOpts : uint16_t {
 	SEND_TEXT = 150,
 	REQ_SYM_KEY = 151,
 	SEND_SYM_KEY = 152,
+	SEND_FILE = 153,
 	EXIT = 0,
 	INVALID = 0xffff,
 };
