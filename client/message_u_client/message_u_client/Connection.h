@@ -11,13 +11,18 @@
 #include "Response.h"
 #include "Request.h"
 
+// Class that validates the header of a response
 class HeaderValidator {
 public:
 	HeaderValidator();
 
+	// Set the current request code
 	void setReqCode(RequestCodes code);
+
+	// Validate the header
 	void validate(const std::vector<uint8_t>& bytes);
 
+	// Maps a response codes to the expected response codes and sizes
 	struct MapEntry {
 		MapEntry(const std::vector<ResponseCodes>& codes, const std::vector<std::optional<uint32_t>>& expectedSzs);
 
@@ -35,13 +40,14 @@ public:
 	void validate(const std::vector<uint8_t>& bytes);
 };
 
+// Class for wrapping the connection to the server
 class Connection
 {
 public:
+	// Aliases 
 	using io_ctx_t = boost::asio::io_context;
 	using resolver_t = boost::asio::ip::tcp::resolver;
 	using socket_t = boost::asio::ip::tcp::socket;
-	using stream_handler_t = std::function<std::string(const std::string&)>;
 	using header_t = Response::Header;
 	using bytes_t = std::vector<uint8_t>;
 

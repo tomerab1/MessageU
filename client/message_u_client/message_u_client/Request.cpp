@@ -15,12 +15,13 @@ Request::bytes_t Request::Header::toBytes()
 	bytes_t bytes;
 	size_t offset{ 0 };
 	
+	// Resize the bytes vector to the size of the header
 	bytes.resize(Config::HEADER_BYTES_SZ);
+	// Copy the client id
 	std::copy(id.begin(), id.end(), bytes.begin());
 	offset += Config::CLIENT_ID_SZ;
 
-	size_t test{ Config::CLIENT_ID_SZ };
-
+	// Serialize the version, request code and payload size
 	Utils::serializeTrivialType(bytes, offset, version);
 	Utils::serializeTrivialType(bytes, offset, Utils::EnumToUint16(code));
 	Utils::serializeTrivialType(bytes, offset, payloadSz);
@@ -35,11 +36,13 @@ Request::Request(const std::string& id, RequestCodes code, payload_t payload)
 
 Request::bytes_t Request::toBytes()
 {
+	// Get the bytes of the header and the payload
 	auto headerBytes = m_header.toBytes();
 	auto payloadBytes = m_payload->toBytes();
 	bytes_t bytes;
 	size_t offset{ 0 };
 
+	// Resize the bytes vector to be of their combined size, copy the header and then the payload
 	bytes.resize(headerBytes.size() + payloadBytes.size());
 	std::copy(headerBytes.begin(), headerBytes.end(), bytes.begin());
 	offset += headerBytes.size();
