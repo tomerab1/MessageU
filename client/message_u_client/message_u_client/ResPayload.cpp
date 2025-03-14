@@ -17,6 +17,7 @@
 
 ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes code)
 {
+	// Create the appropriate payload object based on the response code
 	switch (code)
 	{
 	case ResponseCodes::REG_OK:
@@ -33,18 +34,15 @@ ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes 
 		return std::make_unique<ErrorPayload>();
 	}
 
+	// In case there is no match, throw a runtime error
 	throw std::runtime_error("Error: '" + std::to_string(Utils::EnumToUint16(code)) + "' is not a valid code");
 }
 
 RegistrationResPayload::RegistrationResPayload(const bytes_t& bytes)
 	: m_uuid{}
 {
-	ptrdiff_t diff = bytes.end() - bytes.begin();
-	if (diff == 0 || diff > Config::CLIENT_ID_SZ) {
-		throw std::runtime_error("Error: Received an invalid user id");
-	}
-
-	m_uuid.resize(diff);
+	// Copy the UUID from the byte array
+	m_uuid.resize(Config::CLIENT_ID_SZ);
 	std::copy(bytes.begin(), bytes.end(), m_uuid.begin());
 }
 
@@ -60,10 +58,12 @@ void RegistrationResPayload::accept(Visitor& visitor)
 
 UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 {
+	// Calculate the number of users in the list
 	size_t numUsers = bytes.size() / (Config::CLIENT_ID_SZ + Config::NAME_MAX_SZ);
 	size_t offset{ 0 };
 	m_users.resize(numUsers);
-
+	
+	// Parse the byte array to extract the user entries
 	for (size_t i = 0; i < numUsers; i++) {
 		UserEntry& curr = m_users[i];
 		curr.id.resize(Config::CLIENT_ID_SZ);
@@ -75,6 +75,7 @@ UsersListResPayload::UsersListResPayload(const bytes_t& bytes)
 		std::copy(bytes.begin() + offset, bytes.begin() + offset + Config::NAME_MAX_SZ, curr.name.begin());
 		offset += Config::NAME_MAX_SZ;
 
+		// Find the string terminator and resize the string to the appropriate length
 		auto pos = std::find(curr.name.begin(), curr.name.end(), '\0');
 		if (pos != curr.name.end()) {
 			curr.name.resize(std::distance(curr.name.begin(), pos));
@@ -94,10 +95,7 @@ const std::vector<UsersListResPayload::UserEntry>& UsersListResPayload::getUsers
 
 PublicKeyResPayload::PublicKeyResPayload(const bytes_t& bytes)
 {
-	if (bytes.empty()) {
-		throw std::runtime_error("Error: PublicKeyPayload payload is empty");
-	}
-
+	// Copy the client ID and public key from the byte array
 	m_entry.id.resize(Config::CLIENT_ID_SZ);
 	m_entry.pubKey.resize(Config::PUB_KEY_SZ);
 
@@ -117,6 +115,7 @@ const PublicKeyResPayload::PublicKeyEntry& PublicKeyResPayload::getPubKeyEntry()
 
 MessageSentResPayload::MessageSentResPayload(const bytes_t& bytes)
 {
+	// Copy the target ID and message ID from the byte array
 	m_entry.targetId.resize(Config::CLIENT_ID_SZ);
 	std::copy(bytes.begin(), bytes.begin() + Config::CLIENT_ID_SZ, m_entry.targetId.begin());
 
@@ -136,18 +135,22 @@ void MessageSentResPayload::accept(Visitor& visitor)
 
 PollMessageResPayload::PollMessageResPayload(const bytes_t& bytes)
 {
+	// Parse the byte array to extract the message entries
 	size_t offset{ 0 };
 	while (offset < bytes.size()) {
 		MessageEntry msg;
 		msg.senderId.resize(Config::CLIENT_ID_SZ);
 
+		// Copy the sender ID from the byte array
 		std::copy(bytes.begin() + offset, bytes.begin() + offset + Config::CLIENT_ID_SZ, msg.senderId.begin());
 		offset += Config::CLIENT_ID_SZ;
 
+		// Deserialize the message id, type and content size
 		msg.msgId = Utils::deserializeTrivialType<uint32_t>(bytes, offset);
 		msg.msgType = MessageTypes(Utils::deserializeTrivialType<uint8_t>(bytes, offset));
 		msg.contentSz = Utils::deserializeTrivialType<uint32_t>(bytes, offset);
 
+		// Resize the content string and copy the content from the byte array
 		msg.content.resize(msg.contentSz);
 		std::copy(bytes.begin() + offset, bytes.begin() + offset + msg.contentSz, msg.content.begin());
 		offset += msg.contentSz;
@@ -178,6 +181,7 @@ ToStringVisitor::ToStringVisitor(ClientState& state)
 
 std::string ToStringVisitor::getString()
 {
+	// Get the string result and clear the stream
 	std::string result = m_ss.str();
 	m_ss.clear();
 	return result;
@@ -185,16 +189,19 @@ std::string ToStringVisitor::getString()
 
 void ToStringVisitor::visit(const RegistrationResPayload& payload)
 {
+	// Convert the UUID to a hex string, later it'll be save to the client data file
 	m_ss << boost::algorithm::hex(payload.getUUID());
 }
 
 void ToStringVisitor::visit(const UsersListResPayload& payload)
 {
+	// If there are no other clients that a registered
 	if (payload.getUsers().empty()) {
 		m_ss << "There are no other registered clients at the moment";
 		return;
 	}
 
+	// Iterate over the user list and print the client ID and name
 	for (const auto& user : payload.getUsers()) {
 		m_ss << boost::algorithm::hex(user.id) << '\t' << user.name << '\n';
 	}
@@ -202,16 +209,19 @@ void ToStringVisitor::visit(const UsersListResPayload& payload)
 
 void ToStringVisitor::visit(const PublicKeyResPayload& payload)
 {
+	// For debugging
 	m_ss << boost::algorithm::hex(payload.getPubKeyEntry().id) << '\t' << payload.getPubKeyEntry().pubKey << '\n';
 }
 
 void ToStringVisitor::visit(const MessageSentResPayload& payload)
 {
+	// For debugging
 	m_ss << boost::algorithm::hex(payload.getMessage().targetId) << '\t' << payload.getMessage().msgId;
 }
 
 void ToStringVisitor::visit(const PollMessageResPayload& payload)
 {
+	// Iterate over the messages and print the sender name and message content
 	auto messages = payload.getMessages();
 	for (size_t i = 0; i < messages.size(); i++) {
 		m_ss << "From: " << m_state.getNameByUUID(messages[i].senderId) << '\n';
@@ -219,14 +229,17 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 
 		switch (messages[i].msgType) {
 		case MessageTypes::SEND_TXT: {
+			// Get the sender name and sym key
 			auto username = m_state.getNameByUUID(messages[i].senderId);
 			auto symKey = m_state.getSymKey(username);
 
+			// If there is no sym key, print an error message
 			if (!symKey) {
-				m_ss << "can’t decrypt message";
+				m_ss << "can't decrypt message";
 				break;
 			}
 
+			// Get the content and decrypt it using the sym key
 			auto msg = messages[i].content;
 			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
 
@@ -240,14 +253,17 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 			m_ss << "Symmetric key received";
 			break;
 		case MessageTypes::SEND_FILE: {
+			// Get the sender name and sym key
 			auto username = m_state.getNameByUUID(messages[i].senderId);
 			auto symKey = m_state.getSymKey(username);
 
+			// If there is no sym key, print an error message
 			if (!symKey) {
-				m_ss << "can’t decrypt message";
+				m_ss << "can't decrypt message";
 				break;
 			}
 
+			// Create a unique filename and save the file to the temp directory
 			auto now = std::chrono::system_clock::now();
 			auto timeT = std::chrono::system_clock::to_time_t(now);
 			std::stringstream filename_ss;
@@ -257,16 +273,19 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 			auto path = std::filesystem::temp_directory_path() / filename;
 			std::ofstream file{ path, std::ios::binary };
 
+			// If the file can't be opened, throw a runtime error
 			if (!file.is_open()) {
 				throw std::runtime_error("Error: Could not open '" + path.string() + "'");
 			}
 
+			// Decrypt the file content and save it to the file
 			const auto& msg = messages[i].content;
 			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
 
 			file << aes.decrypt(msg.c_str(), msg.size());
 			file.close();
 
+			// Print the file path
 			m_ss << "File saved to: " << path;
 			break;
 		}
@@ -280,6 +299,7 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 
 void ToStringVisitor::visit(const ErrorPayload& payload)
 {
+	// Print a generic error message
 	m_ss << std::string("Server responded with a generic error");
 }
 

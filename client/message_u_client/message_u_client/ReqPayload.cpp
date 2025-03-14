@@ -15,6 +15,7 @@ RegisterReqPayload::bytes_t RegisterReqPayload::toBytes()
 	bytes_t bytes;
 	bytes.resize(getSize());
 
+	// Copy the name and public key into the bytes buffer
 	std::copy(m_name.begin(), m_name.end(), bytes.begin());
 	std::copy(m_pubKey.begin(), m_pubKey.end(), bytes.begin() + Config::NAME_MAX_SZ);
 
@@ -47,6 +48,7 @@ GetPublicKeyReqPayload::bytes_t GetPublicKeyReqPayload::toBytes()
 	bytes_t bytes;
 	bytes.resize(getSize());
 
+	// Copy the target ID into the bytes buffer
 	std::copy(m_targetId.begin(), m_targetId.end(), bytes.begin());
 
 	return bytes;
@@ -69,6 +71,7 @@ SendMessageReqPayload::bytes_t SendMessageReqPayload::toBytes()
 	size_t offset{ 0 };
 	bytes.resize(getSize());
 
+	// Copy the target ID, message type, message size and message into the bytes buffer
 	std::copy(m_targetId.begin(), m_targetId.end(), bytes.begin());
 	offset += Config::CLIENT_ID_SZ;
 
