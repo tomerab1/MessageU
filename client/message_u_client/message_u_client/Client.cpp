@@ -155,8 +155,10 @@ void Client::onCliSendTextMsg()
 	}
 
 	// Encrypt the message content using the symmetric key and send it to the server.
-	AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
-	auto encryptedMsg = aes.encrypt(msgContent.c_str(), msgContent.size());
+	auto symKeySz = symKey.value().size();
+	auto msgSz = msgContent.size();
+	AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), static_cast<unsigned int>(symKeySz));
+	auto encryptedMsg = aes.encrypt(msgContent.c_str(), static_cast<unsigned int>(msgSz));
 
 	Request req{ getState().getUUIDUnhexed(),
 			RequestCodes::SEND_MSG,
@@ -238,9 +240,10 @@ void Client::onCliSendFile()
 
 	ss << file.rdbuf();
 	auto msgContent = ss.str();
-
-	AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
-	auto encryptedMsg = aes.encrypt(msgContent.c_str(), msgContent.size());
+	auto symKeySz = symKey.value().size();
+	auto msgSz = msgContent.size();
+	AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), static_cast<unsigned int>(symKeySz));
+	auto encryptedMsg = aes.encrypt(msgContent.c_str(), static_cast<unsigned int>(msgSz));
 
 	Request req{ getState().getUUIDUnhexed(),
 			RequestCodes::SEND_MSG,
@@ -291,14 +294,30 @@ void ClientState::loadFromFile(const std::filesystem::path& path)
 
 	// Read the uername
 	std::getline(ss, line);
+
+	if (line.size() > Config::NAME_MAX_SZ || line.empty()) {
+		throw std::runtime_error("Error: Could not load 'me.info' name is of invalid length");
+	}
+
 	setUsername(line);
 
 	// Read the hexed uuid
 	std::getline(ss, line);
+
+	// * 2 because each byte is encoded using 2 hex characters
+	if (line.size() > Config::CLIENT_ID_SZ * 2 || line.empty()) {
+		throw std::runtime_error("Error: Could not load 'me.info' UUID is of invalid length");
+	}
+
 	setUUID(line);
 
 	// Read the private key
 	std::string priKey{ std::istreambuf_iterator<char>(ss), std::istreambuf_iterator<char>() };
+
+	if (priKey.empty()) {
+		throw std::runtime_error("Error: Could not load 'me.info' private key is absent");
+	}
+
 	setPrivKey(Base64Wrapper::decode(priKey));
 }
 

@@ -93,7 +93,7 @@ CLIMenuOpts CLI::getUserOpt()
 		Utils::trimStr(out);
 		return CLIMenuOpts(Utils::strToInt(out));
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception&) {
 		throw std::runtime_error("Error: '" + out + "' is not a valid option");
 	}
 }

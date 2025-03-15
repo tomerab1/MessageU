@@ -10,8 +10,13 @@ from proto.request import (
 from services.client_service import ClientService
 from services.message_service import MessagesService
 import logging
+import binascii
 
 logger = logging.getLogger(__name__)
+
+
+def hexify(id: bytes) -> str:
+    return binascii.hexlify(id).decode("utf-8")
 
 
 class Controller:
@@ -51,6 +56,7 @@ class Controller:
     ) -> Response:
         """Router handler for registering a new client"""
         new_client = self._client_service.create(register_payload)
+        logger.info("New client registered")
         ctx.write(
             ResponseFactory.create_response(
                 ResponseCodes.REG_OK,
@@ -62,8 +68,8 @@ class Controller:
         """Router handler for fetching all registered users except for the user who made the request"""
         client_id = ctx.get_req().get_header().client_id
         users_list = self._client_service.find_all(client_id)
-        print(users_list)
         users_list = list(filter(lambda x: x.get_uuid() != client_id, users_list))
+        logger.info(f"Sending users list to {hexify(client_id)}")
         ctx.write(
             ResponseFactory.create_response(
                 ResponseCodes.LIST_USRS,
@@ -76,6 +82,9 @@ class Controller:
     ) -> Response:
         """Handler for fetching the public key of a user"""
         user = self._client_service.find_by_id(get_pub_key_payload.user_id)
+        logger.info(
+            f"Sending public key to {hexify(ctx.get_req().get_header().client_id)}"
+        )
         ctx.write(
             ResponseFactory.create_response(
                 ResponseCodes.PUB_KEY,
@@ -88,6 +97,9 @@ class Controller:
         """Handler for sending a message"""
         client_id = ctx.get_req().get_header().client_id
         msg = self._messages_service.create(client_id, send_msg_payload)
+        logger.info(
+            f"Message sent from {hexify(client_id)} to {hexify(msg.get_to_client())}"
+        )
         ctx.write(
             ResponseFactory.create_response(
                 ResponseCodes.MSG_SENT,
@@ -100,7 +112,7 @@ class Controller:
         """Handler for polling pending messages"""
         client_id = ctx.get_req().get_header().client_id
         msgs = self._messages_service.poll_msgs(client_id)
-        print(msgs)
+        logger.info(f"Polling messages for {hexify(client_id)}")
         ctx.write(
             ResponseFactory.create_response(
                 ResponseCodes.POLL_MSGS,

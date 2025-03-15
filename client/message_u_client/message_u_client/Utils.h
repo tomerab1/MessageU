@@ -9,7 +9,7 @@
 namespace Utils {
 
 	/**
-	 * @brief Serializes a trivial type into a vector of bytes.
+	 * Serializes a trivial type into a vector of bytes
 	 */
 	template<typename T>
 	void serializeTrivialType(std::vector<uint8_t>& outVec, size_t& outOffset, T toSerialize) {
@@ -19,7 +19,7 @@ namespace Utils {
 	}
 
 	/**
-	 * @brief Deserializes a trivial type from a vector of bytes.
+	 * Deserializes a trivial type from a vector of bytes
 	 */
 	template<typename T>
 	T deserializeTrivialType(const std::vector<uint8_t>& bytes, size_t& outOffset) {
@@ -30,7 +30,7 @@ namespace Utils {
 	}
 
 	/**
-	 * @brief Converts an enum type to an uint16_t.
+	 * Converts an enum type to an uint16_t
 	 */
 	template<typename T>
 	uint16_t EnumToUint16(T enumVal) {
@@ -38,7 +38,7 @@ namespace Utils {
 	}
 
 	/**
-	 * @brief Converts an enum type to an uint8_t.
+	 * Converts an enum type to an uint8_t
 	 */
 	template<typename T>
 	uint8_t EnumToUint8(T enumVal) {
@@ -46,14 +46,17 @@ namespace Utils {
 	}
 
 	/**
-	 * @brief Converts a string to an uint32_t.
+	 * Converts a string to an uint32_t
 	 */
 	int32_t strToInt(std::string& str);
 
 	/**
-	 * @brief Trims a string on both ends.
+	 * Trims a string on both ends.
 	 */
 	void trimStr(std::string& str);
-
-	std::filesystem::path getUniquePath();
+	
+	/**
+	 * Generates a unique file path
+	 */
+	std::filesystem::path getUniquePath(uint32_t msgId);
 }

@@ -60,7 +60,7 @@ class MessageUServer:
     def _accept(self, sock, mask):
         """Accepts incoming connections"""
         conn, addr = sock.accept()
-        print(f"Accepted {conn} from {addr}")
+        logger.info(f"Accepted {conn} from {addr}")
         conn.setblocking(False)
         self._sel.register(conn, selectors.EVENT_READ, self._read)
 
@@ -123,7 +123,7 @@ class MessageUServer:
 def main():
     try:
         Config.load()
-        server = MessageUServer(port=1234)
+        server = MessageUServer(port=Config.PORT)
         server.serve()
     except Exception as e:
         logger.exception(e)

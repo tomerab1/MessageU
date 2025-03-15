@@ -105,8 +105,6 @@ class MessageSentPayload(ResPayload):
         return MessageSentPayload._FMT_SZ
 
     def to_bytes(self):
-        print(self._dst_client_id)
-        print(self._msg_id)
         return struct.pack(
             MessageSentPayload._RES_FMT, self._dst_client_id, self._msg_id
         )

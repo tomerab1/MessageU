@@ -37,7 +37,9 @@ private:
 
 class PayloadValidator {
 public:
-	void validate(const std::vector<uint8_t>& bytes);
+	using header_t = Response::Header;
+
+	void validate(const header_t& header, const std::vector<uint8_t>& bytes);
 };
 
 // Class for wrapping the connection to the server

@@ -13,6 +13,7 @@
 #include <fstream>
 #include <filesystem>
 #include <chrono>
+#include <limits>
 #include <boost/algorithm/hex.hpp>
 
 ResPayload::payload_t ResPayload::fromBytes(const bytes_t& bytes, ResponseCodes code)
@@ -241,9 +242,11 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 
 			// Get the content and decrypt it using the sym key
 			auto msg = messages[i].content;
-			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
+			auto msgSz = msg.size();
+			auto keySz = symKey.value().size();
+			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), static_cast<unsigned int>(keySz));
 
-			m_ss << aes.decrypt(msg.c_str(), msg.size());
+			m_ss << aes.decrypt(msg.c_str(), static_cast<unsigned int>(msgSz));
 			break;
 		}
 		case MessageTypes::GET_SYM_KEY:
@@ -264,7 +267,7 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 			}
 
 			// Create a unique filename and save the file to the temp directory
-			auto path = Utils::getUniquePath();
+			auto path = Utils::getUniquePath(messages[i].msgId);
 			std::ofstream file{ path, std::ios::binary };
 
 			// If the file can't be opened, throw a runtime error
@@ -274,9 +277,11 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 
 			// Decrypt the file content and save it to the file
 			const auto& msg = messages[i].content;
-			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
+			auto msgSz = msg.size();
+			auto keySz = symKey.value().size();
+			AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), static_cast<unsigned int>(keySz));
 
-			file << aes.decrypt(msg.c_str(), msg.size());
+			file << aes.decrypt(msg.c_str(), static_cast<unsigned int>(msgSz));
 			file.close();
 
 			// Print the file path

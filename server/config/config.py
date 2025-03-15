@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -17,6 +20,10 @@ class Config:
             Config.PORT = int(txt)
 
         except FileNotFoundError:
-            print(
+            logger.error(
                 f"Error: '{Config._PORT_PATH}' does not exist, falling back to port {Config.PORT}"
+            )
+        except ValueError:
+            logger.error(
+                f"Error: '{Config._PORT_PATH}' does not contain a valid port number, falling back to port {Config.PORT}"
             )

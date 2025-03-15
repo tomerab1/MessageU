@@ -35,7 +35,8 @@ Connection::bytes_t Connection::readPayload(const header_t& header)
 	payloadBytes.resize(header.payloadSz);
 
 	recv(payloadBytes, header.payloadSz);
-	m_payloadValidator.validate(payloadBytes);
+	// Validate the payload
+	m_payloadValidator.validate(header, payloadBytes);
 
 	return payloadBytes;
 }
@@ -84,8 +85,8 @@ HeaderValidator::HeaderValidator()
 	// std::nullopt means that the payload is of variable size
 	m_reqCodeToExpectedRes.insert({ RequestCodes::REGISTER, {{ResponseCodes::REG_OK, ResponseCodes::ERR}, {Config::CLIENT_ID_SZ, 0}} });
 	m_reqCodeToExpectedRes.insert({ RequestCodes::USRS_LIST,  {{ResponseCodes::USRS_LIST, ResponseCodes::ERR}, {std::nullopt, 0}} });
-	m_reqCodeToExpectedRes.insert({ RequestCodes::GET_PUB_KEY, {{ResponseCodes::PUB_KEY, ResponseCodes::ERR}, {std::nullopt, 0}} });
-	m_reqCodeToExpectedRes.insert({ RequestCodes::SEND_MSG,  {{ResponseCodes::MSG_SEND, ResponseCodes::ERR}, {std::nullopt, 0}} });
+	m_reqCodeToExpectedRes.insert({ RequestCodes::GET_PUB_KEY, {{ResponseCodes::PUB_KEY, ResponseCodes::ERR}, {Config::CLIENT_ID_SZ + Config::PUB_KEY_SZ, 0}} });
+	m_reqCodeToExpectedRes.insert({ RequestCodes::SEND_MSG,  {{ResponseCodes::MSG_SEND, ResponseCodes::ERR}, {Config::CLIENT_ID_SZ + sizeof(uint32_t), 0}}});
 	m_reqCodeToExpectedRes.insert({ RequestCodes::POLL_MSGS, {{ResponseCodes::POLL_MSGS, ResponseCodes::ERR}, {std::nullopt, 0}} });
 }
 
@@ -129,7 +130,11 @@ void HeaderValidator::validate(const std::vector<uint8_t>& bytes)
 	}
 }
 
-void PayloadValidator::validate(const std::vector<uint8_t>& bytes)
+void PayloadValidator::validate(const header_t& header, const std::vector<uint8_t>& bytes)
 {
-	
+    // Makes sure that the payload size matches the size declared in the header
+    if (bytes.size() != header.payloadSz) {
+        throw std::runtime_error("Error: Payload size (" + std::to_string(bytes.size()) +
+                                 ") does not match header's declared size (" + std::to_string(header.payloadSz) + ").");
+    }
 }
