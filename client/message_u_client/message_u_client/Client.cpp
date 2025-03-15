@@ -313,12 +313,13 @@ void ClientState::loadFromFile(const std::filesystem::path& path)
 
 	// Read the private key
 	std::string priKey{ std::istreambuf_iterator<char>(ss), std::istreambuf_iterator<char>() };
+	auto decodedKey = Base64Wrapper::decode(priKey);
 
-	if (priKey.empty()) {
-		throw std::runtime_error("Error: Could not load 'me.info' private key is absent");
+	if (decodedKey.empty()) {
+		throw std::runtime_error("Error: Could not load 'me.info' private key is missing");
 	}
 
-	setPrivKey(Base64Wrapper::decode(priKey));
+	setPrivKey(decodedKey);
 }
 
 void ClientState::saveToFile(const std::filesystem::path& path)
@@ -333,7 +334,7 @@ void ClientState::saveToFile(const std::filesystem::path& path)
 	// Write the username, hexed uuid and private key to the file.
 	out << getUsername() << std::endl;
 	out << getUUID() << std::endl;
-	out << Base64Wrapper::encode(getPrivKey()) << std::endl;
+	out << Base64Wrapper::encode(getPrivKey());
 }
 
 bool ClientState::isInitialized()
