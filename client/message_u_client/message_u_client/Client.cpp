@@ -305,7 +305,7 @@ void ClientState::loadFromFile(const std::filesystem::path& path)
 	std::getline(ss, line);
 
 	// * 2 because each byte is encoded using 2 hex characters
-	if (line.size() > Config::CLIENT_ID_SZ * 2 || line.empty()) {
+	if (line.size() != Config::CLIENT_ID_SZ * 2 || line.empty()) {
 		throw std::runtime_error("Error: Could not load 'me.info' UUID is of invalid length");
 	}
 
