@@ -112,7 +112,7 @@ class Controller:
         """Handler for polling pending messages"""
         client_id = ctx.get_req().get_header().client_id
         msgs = self._messages_service.poll_msgs(client_id)
-        logger.info(f"Polling messages for {hexify(client_id)}")
+        logger.info(f"Polling messages({len(msgs)}) for {hexify(client_id)}")
         ctx.write(
             ResponseFactory.create_response(
                 ResponseCodes.POLL_MSGS,

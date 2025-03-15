@@ -21,4 +21,9 @@ class MessagesService:
 
     def poll_msgs(self, client_id) -> list[MessageEntity]:
         self._messages_repo.find(lambda msg: client_id == msg.get_to_client())
-        return self._messages_repo.find(lambda msg: client_id == msg.get_to_client())
+        msgs = self._messages_repo.find(lambda msg: client_id == msg.get_to_client())
+
+        for msg in msgs:
+            self._messages_repo.delete(msg.get_id())
+
+        return msgs

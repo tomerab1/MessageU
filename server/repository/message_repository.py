@@ -71,4 +71,4 @@ class MessageRepository(Repository):
         with sqlite3.connect(self._db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(f"DELETE FROM {self.__tablename__} WHERE ID=?", (id,))
-            cursor.commit()
+            conn.commit()
