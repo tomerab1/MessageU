@@ -13,4 +13,7 @@ namespace Config {
 	static constexpr size_t CHUNK_SZ = 1024; // Chunk size for the socket buffer 
 	static constexpr const char* ME_DOT_INFO_PATH = "./me.info"; // Path of the client info file
 	static const std::string EMPTY_UUID = ""; // Empty UUID
+
+	static const std::string SERVER_ADDR = "localhost"; // Server address
+	static const std::string SERVER_PORT = "1234"; // Server port
 }

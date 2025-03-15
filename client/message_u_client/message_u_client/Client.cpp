@@ -19,11 +19,13 @@ Client::Client(context_t& ctx, const std::string& addr, const std::string& port)
 	m_conn{ std::make_unique<Connection>(ctx, addr, port) },
 	m_state{ Config::ME_DOT_INFO_PATH }
 {
+	// Setting up the cli handlers.
 	setupCliHandlers();
 }
 
 void Client::run()
 {
+	// Getting the cli and running it, to enable client interaction.
 	getCLI().run();
 }
 
@@ -43,12 +45,15 @@ void Client::setupCliHandlers()
 
 void Client::onCliRegister()
 {
+	// Getting the username from the user.
 	auto username = getCLI().input("Enter a username: ");
 
+	// Checking if the username is valid.
 	if (username.length() >= Config::NAME_MAX_SZ) {
 		throw std::logic_error("Error: Name length is '" + std::to_string(username.length()) + "' but the max is '" + std::to_string(Config::NAME_MAX_SZ) + "'");
 	}
 
+	// Creating a new RSA key pair.
 	RSAPrivateWrapper rsapriv;
 	std::string pubKey = rsapriv.getPublicKey();
 
@@ -59,6 +64,8 @@ void Client::onCliRegister()
 	getConn().send(req);
 	auto res = getConn().recvResponse();
 
+	// Getting the payload of the response, if the response is successful, save the user info to a file.
+	// Else, print the error message.
 	auto payloadVisitor = std::make_unique<ToStringVisitor>(getState());
 	res.getPayload().accept(*payloadVisitor);
 
@@ -70,8 +77,6 @@ void Client::onCliRegister()
 		getState().setPrivKey(rsapriv.getPrivateKey());
 		getState().setUUID(uuid);
 		getState().saveToFile(Config::ME_DOT_INFO_PATH);
-
-		setupCliHandlers();
 	}
 	else {
 		std::cout << payloadVisitor->getString() << "\n\n";
@@ -87,6 +92,7 @@ void Client::onCliReqClientList()
 	getConn().send(req);
 	auto res = getConn().recvResponse();
 
+	// Visiting the payload using the ToStringVisitor to print the clients list and the ClientStateVisitor to update the client state.
 	auto stringVisitor = std::make_unique<ToStringVisitor>(getState());
 	auto stateVisitor = std::make_unique<ClientStateVisitor>(getState());
 
@@ -98,6 +104,7 @@ void Client::onCliReqClientList()
 
 void Client::onCliReqPubKey()
 {
+	// Getting the target username from the user and extracting the target UUID from the client state.
 	auto targetUsername = getCLI().input("Enter a username: ");
 	auto targetUUID = getState().getUUID(targetUsername);
 
@@ -108,6 +115,7 @@ void Client::onCliReqPubKey()
 	getConn().send(req);
 	auto res = getConn().recvResponse();
 
+	// Update the state with the public key of the target user.
 	auto stateVisitor = std::make_unique<ClientStateVisitor>(getState());
 	res.getPayload().accept(*stateVisitor);
 }
@@ -121,6 +129,7 @@ void Client::onCliReqPendingMsgs()
 	getConn().send(req);
 	auto res = getConn().recvResponse();
 
+	// Visiting the payload using the ToStringVisitor to print the pending messages and the ClientStateVisitor to update the client state.
 	auto stringVisitor = std::make_unique<ToStringVisitor>(getState());
 	auto stateVisitor = std::make_unique<ClientStateVisitor>(getState());
 
@@ -132,15 +141,20 @@ void Client::onCliReqPendingMsgs()
 
 void Client::onCliSendTextMsg()
 {
+	// Getting the target username from the user and extracting the target UUID from the client state.
 	auto targetUsername = getCLI().input("Enter a username: ");
 	auto targetUUID = getState().getUUID(targetUsername);
+	
+	// Getting the message content from the user and the symmetric key from the client state.
 	auto msgContent = getCLI().input("Enter your message: ");
 	auto symKey = getState().getSymKey(targetUsername);
 
+	// If the symmetric key doesn't exist, throw an error.
 	if (!symKey) {
 		throw std::logic_error("Error: Can't get the symmetric key of '" + targetUsername + "' it doesn't exist yet");
 	}
 
+	// Encrypt the message content using the symmetric key and send it to the server.
 	AESWrapper aes(reinterpret_cast<const uint8_t*>(symKey.value().c_str()), symKey.value().size());
 	auto encryptedMsg = aes.encrypt(msgContent.c_str(), msgContent.size());
 
@@ -154,9 +168,11 @@ void Client::onCliSendTextMsg()
 
 void Client::onCliReqSymKey()
 {
+	// Getting the target username from the user and extracting the target UUID from the client state.
 	auto targetUsername = getCLI().input("Enter a username: ");
 	auto targetUUID = getState().getUUID(targetUsername);
 
+	// Send a request to the server to get the symmetric key of the target user.
 	Request req{ getState().getUUIDUnhexed(),
 			RequestCodes::SEND_MSG,
 			std::make_unique<SendMessageReqPayload>(targetUUID, MessageTypes::GET_SYM_KEY, 0, "") };
@@ -167,14 +183,17 @@ void Client::onCliReqSymKey()
 
 void Client::onCliSendSymKey()
 {
+	// Getting the target username from the user and extracting the target UUID and public key from the client state.
 	auto targetUsername = getCLI().input("Enter a username: ");
 	auto targetUUID = getState().getUUID(targetUsername);
 	auto targetPubKey = getState().getPubKey(targetUsername);
 
+	// If the public key doesn't exist, throw an error.
 	if (!targetPubKey) {
 		throw std::logic_error("Error: Can't get the public key of '" + targetUsername + "' it doesn't exist yet");
 	}
 
+	// If the symmetric key doesn't exist, generate a new one and save it to the client state.
 	if (!getState().getSymKey(targetUsername)) {
 		unsigned char key[AESWrapper::DEFAULT_KEYLENGTH];
 		AESWrapper aes(AESWrapper::GenerateKey(key, AESWrapper::DEFAULT_KEYLENGTH), AESWrapper::DEFAULT_KEYLENGTH);
@@ -185,6 +204,7 @@ void Client::onCliSendSymKey()
 		getState().setSymKey(targetUsername, symKey);
 	}
 
+	// Encrypt the symmetric key using the target user's public key and send it to the server.
 	auto symKey = getState().getSymKey(targetUsername).value();
 	auto rsaPub = RSAPublicWrapper(targetPubKey.value());
 	auto encryptedSymKey = rsaPub.encrypt(symKey);
@@ -199,15 +219,20 @@ void Client::onCliSendSymKey()
 
 void Client::onCliSendFile()
 {
+	// Getting the target username from the user and extracting the target UUID and symmetric key from the client state.
 	auto targetUsername = getCLI().input("Enter a username: ");
 	auto targetUUID = getState().getUUID(targetUsername);
+
+	// Getting the file path from the user and the symmetric key from the client state.
 	auto path = getCLI().input("Enter file path: ");
 	auto symKey = getState().getSymKey(targetUsername);
 
+	// If the symmetric key doesn't exist, throw an error.
 	if (!symKey) {
 		throw std::logic_error("Error: Can't get the symmetric key of '" + targetUsername + "' it doesn't exist yet");
 	}
 
+	// Read the file content and encrypt it using the symmetric key and send it to the server.
 	std::ifstream file{ path, std::ios::binary | std::ios::beg };
 	std::stringstream ss;
 
@@ -244,6 +269,7 @@ Client::~Client() = default;
 
 ClientState::ClientState(const std::filesystem::path& path)
 {
+	// Check if the file exists, if it does, load the client state from it.
 	if (std::filesystem::exists(path)) {
 		loadFromFile(path);
 	}
@@ -263,12 +289,15 @@ void ClientState::loadFromFile(const std::filesystem::path& path)
 
 	std::string line;
 
+	// Read the uername
 	std::getline(ss, line);
 	setUsername(line);
 
+	// Read the hexed uuid
 	std::getline(ss, line);
 	setUUID(line);
 
+	// Read the private key
 	std::string priKey{ std::istreambuf_iterator<char>(ss), std::istreambuf_iterator<char>() };
 	setPrivKey(Base64Wrapper::decode(priKey));
 }
@@ -282,6 +311,7 @@ void ClientState::saveToFile(const std::filesystem::path& path)
 		throw std::runtime_error("Error: Failed to load client state from '" + path.filename().string() + "'");
 	}
 
+	// Write the username, hexed uuid and private key to the file.
 	out << getUsername() << std::endl;
 	out << getUUID() << std::endl;
 	out << Base64Wrapper::encode(getPrivKey()) << std::endl;
@@ -299,7 +329,9 @@ bool ClientState::hasSymKey(const std::string& username)
 
 std::string ClientState::getNameByUUID(const std::string& uuid)
 {
+	// Find the username by the uuid.
 	auto iter = m_uuidToName.find(uuid);
+	// If the uuid doesn't exist, throw an error.
 	if (iter == m_uuidToName.end()) {
 		throw std::runtime_error("Error: Can't find user with uuid='" + uuid + "'");
 	}
@@ -309,10 +341,12 @@ std::string ClientState::getNameByUUID(const std::string& uuid)
 
 void ClientState::addClient(const std::string& name, const std::string& uuid)
 {
+	// If the client already exists, return.
 	if (m_nameToClient.find(name) != m_nameToClient.end()) {
 		return;
 	}
 
+	// Create a new client entry and insert it to the maps.
 	ClientEntry other;
 	other.uuid = uuid;
 
@@ -322,41 +356,49 @@ void ClientState::addClient(const std::string& name, const std::string& uuid)
 
 void ClientState::setUsername(const std::string& username)
 {
+	// Set the username of the current client
 	m_store[ClientStateKeys::USERNAME] = username;
 }
 
 void ClientState::setUUID(const std::string& uuid)
 {
+	// Set the uuid of the current client
 	m_store[ClientStateKeys::UUID] = uuid;
 }
 
 void ClientState::setPubKey(const std::string& pubKey)
 {
+	// Set the public key of the current client
 	m_store[ClientStateKeys::PUB_KEY] = pubKey;
 }
 
 void ClientState::setPubKey(const std::string& username, const std::string& pubKey)
 {
+	// Set the public key for another client
 	getClient(username).pubKey = pubKey;
 }
 
 void ClientState::setPrivKey(const std::string& privKey)
 {
+	// Set the private key of the current client
 	m_store[ClientStateKeys::PRIV_KEY] = privKey;
 }
 
 void ClientState::setSymKey(const std::string& username, const std::string& symKey)
 {
+	// Set the symmetric key for another client
 	getClient(username).symKey = symKey;
 }
 
 const std::string& ClientState::getUsername()
 {
+	// Get the username of the current client
 	return m_store[ClientStateKeys::USERNAME];
 }
 
 std::string ClientState::getUUIDUnhexed()
 {
+	// Get the uuid of the current client and convert it from hex to string
 	auto uuid = getUUID();
 	if (uuid == Config::EMPTY_UUID) {
 		return uuid;
@@ -370,41 +412,49 @@ std::string ClientState::getUUIDUnhexed()
 const std::string& ClientState::getUUID()
 {
 	if (m_store.find(ClientStateKeys::UUID) == m_store.end()) {
-		// Return an empty uuid (for first time before registration).
+		// Return an empty uuid (for first time before registration as the server generates the uuid for a client).
 		return Config::EMPTY_UUID;
 	}
 
+	// Get the uuid of the current client
 	return m_store[ClientStateKeys::UUID];
 }
 
 const std::string& ClientState::getUUID(const std::string& username)
 {
+	// Get the uuid of another client
 	return getClient(username).uuid;
 }
 
 const std::string& ClientState::getPubKey()
 {
+	// Get the public key of the current client
 	return m_store[ClientStateKeys::PUB_KEY];
 }
 
 const std::optional<std::string>& ClientState::getPubKey(const std::string& username)
 {
+	// Get the public key of another client
 	return getClient(username).pubKey;
 }
 
 const std::string& ClientState::getPrivKey()
 {
+	// Get the private key of the current client
 	return m_store[ClientStateKeys::PRIV_KEY];
 }
 
 const std::optional<std::string>& ClientState::getSymKey(const std::string& username)
 {
+	// Get the symmetric key of another client
 	return getClient(username).symKey;
 }
 
 ClientState::ClientEntry& ClientState::getClient(const std::string& username)
 {
+	// Get the client entry of another client
 	auto iter = m_nameToClient.find(username);
+	// If the client doesn't exist, throw an error.
 	if (iter == m_nameToClient.end()) {
 		throw std::runtime_error("Error: Can't find username: '" + username + "'");
 	}

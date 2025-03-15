@@ -264,13 +264,7 @@ void ToStringVisitor::visit(const PollMessageResPayload& payload)
 			}
 
 			// Create a unique filename and save the file to the temp directory
-			auto now = std::chrono::system_clock::now();
-			auto timeT = std::chrono::system_clock::to_time_t(now);
-			std::stringstream filename_ss;
-			filename_ss << "file_" << messages[i].msgId << "_" << timeT;
-			std::string filename = filename_ss.str();
-
-			auto path = std::filesystem::temp_directory_path() / filename;
+			auto path = Utils::getUniquePath();
 			std::ofstream file{ path, std::ios::binary };
 
 			// If the file can't be opened, throw a runtime error
@@ -317,6 +311,7 @@ void ClientStateVisitor::visit(const UsersListResPayload& payload)
 
 void ClientStateVisitor::visit(const PublicKeyResPayload& payload)
 {
+	// Get the public key entry and set the public key for the client
 	auto entry = payload.getPubKeyEntry();
 	auto name = m_state.getNameByUUID(entry.id);
 	m_state.setPubKey(name, entry.pubKey);
@@ -324,6 +319,7 @@ void ClientStateVisitor::visit(const PublicKeyResPayload& payload)
 
 void ClientStateVisitor::visit(const PollMessageResPayload& payload)
 {
+	// Iterate over the messages, if the message is a symmetric key, decrypt it and save it in the client state so messages/files could also be decrypted
 	auto messages = payload.getMessages();
 	for (size_t i = 0; i < messages.size(); i++) {
 		switch (messages[i].msgType) {
@@ -343,12 +339,10 @@ void ClientStateVisitor::visit(const PollMessageResPayload& payload)
 
 void ClientStateVisitor::visit(const RegistrationResPayload& payload)
 {
-	throw std::logic_error("Error: Unreachable");
 }
 
 void ClientStateVisitor::visit(const MessageSentResPayload& payload)
 {
-	throw std::logic_error("Error: Unreachable");
 }
 
 void ClientStateVisitor::visit(const ErrorPayload& payload)

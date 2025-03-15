@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include <string>
+#include <filesystem>
 #include <boost/endian/conversion.hpp>
 
 namespace Utils {
@@ -53,4 +54,6 @@ namespace Utils {
 	 * @brief Trims a string on both ends.
 	 */
 	void trimStr(std::string& str);
+
+	std::filesystem::path getUniquePath();
 }

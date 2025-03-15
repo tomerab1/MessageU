@@ -1,4 +1,5 @@
 ﻿#include "Client.h"
+#include "Config.h"
 
 #include <iostream>
 
@@ -7,7 +8,7 @@ int main()
 {
 	try {
 		boost::asio::io_context ctx;
-		Client client{ ctx, "localhost", "1234" };
+		Client client{ ctx, Config::SERVER_ADDR, Config::SERVER_PORT };
 
 		client.run();
 	}
